@@ -59,14 +59,18 @@ function InviteModal({ householdId, onClose }: { householdId: string; onClose: (
   )
 }
 
-export function Sidebar() {
+interface SidebarProps {
+  onNavigate?: () => void
+}
+
+export function Sidebar({ onNavigate }: SidebarProps = {}) {
   const { state, dispatch } = useFinance()
   const { profile, signOut } = useAuth()
   const [showInvite, setShowInvite] = useState(false)
 
   return (
     <>
-      <aside className="fixed left-0 top-0 h-full w-64 bg-surface-900 border-r border-white/10 flex flex-col z-40">
+      <aside className="h-full w-64 bg-surface-900 border-r border-white/10 flex flex-col">
         {/* Logo */}
         <div className="p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
@@ -129,6 +133,7 @@ export function Sidebar() {
               key={to}
               to={to}
               end={to === '/'}
+              onClick={onNavigate}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-medium ${
                   isActive

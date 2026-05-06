@@ -347,7 +347,7 @@ export function Payments() {
         {/* ── BILLS TAB ──────────────────────────────────────────────────── */}
         {tab === 'bills' && (
           <>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-3 lg:gap-4">
               {[
                 { label: 'Total do Mês', value: billsSummary.total, color: 'text-white' },
                 { label: 'Pago', value: billsSummary.paid, color: 'text-emerald-400' },
@@ -409,7 +409,7 @@ export function Payments() {
         {/* ── INVOICES TAB ───────────────────────────────────────────────── */}
         {tab === 'invoices' && (
           <>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-3 lg:gap-4">
               {[
                 { label: 'Total Faturas', value: invoiceSummary.total, color: 'text-white' },
                 { label: 'Pago', value: invoiceSummary.paid, color: 'text-emerald-400' },

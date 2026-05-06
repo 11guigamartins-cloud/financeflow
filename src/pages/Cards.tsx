@@ -105,7 +105,7 @@ export function Cards() {
       <div className="space-y-8">
 
         {/* ── Summary row ─────────────────────────────────────────────── */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           <div className="bg-surface-900 border border-white/10 rounded-2xl p-5">
             <p className="text-xs text-slate-400 mb-1">Cartões ativos</p>
             <p className="text-2xl font-bold text-white">{visibleCards.length}</p>
@@ -155,7 +155,7 @@ export function Cards() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
               {visibleCards.map((card) => {
                 const usage = getCardUsageForMonth(card.id, currentMonth)
                 const user  = state.users.find((u) => u.id === card.userId)
@@ -193,7 +193,7 @@ export function Cards() {
                 Fatura atual: <span className="text-white font-semibold ml-1">{formatCurrency(selectedUsage)}</span>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
               <div>
                 <h4 className="text-sm font-medium text-slate-400 mb-3">Histórico (6 meses)</h4>
                 <ResponsiveContainer width="100%" height={180}>
@@ -224,7 +224,7 @@ export function Cards() {
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-4 gap-4 pt-2 border-t border-white/10">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 pt-2 border-t border-white/10">
               {[
                 { label: 'Banco',      value: selected.bank },
                 { label: 'Bandeira',   value: selected.network.toUpperCase() },
@@ -264,7 +264,7 @@ export function Cards() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
               {visibleAccounts.map((acc) => {
                 const user = state.users.find((u) => u.id === acc.userId)
                 return (

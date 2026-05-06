@@ -156,7 +156,7 @@ export function Reports() {
         </div>
 
         {/* Category comparison + Radar */}
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
           <div className="bg-surface-900 border border-white/10 rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-6">
               <BarChart2 className="w-5 h-5 text-brand-400" />
@@ -195,7 +195,7 @@ export function Reports() {
         </div>
 
         {/* Day of week pattern + User comparison */}
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
           <div className="bg-surface-900 border border-white/10 rounded-2xl p-6">
             <h3 className="font-semibold text-white mb-1">Padrão por Dia da Semana</h3>
             <p className="text-xs text-slate-400 mb-4">Gasto médio por transação</p>

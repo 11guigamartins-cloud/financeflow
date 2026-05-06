@@ -101,7 +101,7 @@ export function Installments() {
     <Layout title="Parcelamentos" subtitle="Monitore todas as suas compras parceladas">
       <div className="space-y-6">
         {/* Stats */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           <StatCard title="Dívida total em parcelas" value={formatCurrency(totalDebt)} icon={Layers} iconColor="#a855f7" />
           <StatCard title="Compromisso mensal" value={formatCurrency(monthlyCommitment)}
             subtitle="Próximas parcelas/mês" icon={Clock} iconColor="#f97316" />
@@ -114,7 +114,7 @@ export function Installments() {
         {/* Next months projection */}
         <div className="bg-surface-900 border border-white/10 rounded-2xl p-6">
           <h3 className="font-semibold text-white mb-4">Projeção — Próximos 3 Meses</h3>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
             {projectionMonths.map((m) => (
               <div key={m.label} className="bg-surface-800 rounded-xl p-4">
                 <p className="text-xs text-slate-400 capitalize mb-2">{m.label}</p>

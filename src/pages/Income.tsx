@@ -190,7 +190,7 @@ export function Income() {
       <div className="space-y-6">
 
         {/* Stats */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           <StatCard title="Recebido este mês" value={formatCurrency(currentIncome)}
             icon={TrendingUp} iconColor="#22c55e" />
           <StatCard title="A receber este mês" value={formatCurrency(pendingTotal)}
@@ -223,7 +223,7 @@ export function Income() {
         </div>
 
         {/* List + Category breakdown */}
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
           <div className="col-span-2 bg-surface-900 border border-white/10 rounded-2xl overflow-hidden">
             {/* Filters */}
             <div className="flex items-center gap-3 p-5 border-b border-white/10">

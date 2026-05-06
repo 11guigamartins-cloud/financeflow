@@ -106,7 +106,7 @@ export function Dashboard() {
       <div className="space-y-6">
 
         {/* Stat cards row 1 */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           <StatCard title="Gasto este mês"   value={formatCurrency(currentTotal)}
             icon={TrendingDown} iconColor="#ef4444"
             trend={{ value: trendPct, label: 'vs mês anterior' }} />
@@ -121,7 +121,7 @@ export function Dashboard() {
         </div>
 
         {/* Stat cards row 2 */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           <StatCard title="Média diária" value={formatCurrency(avgDaily)}
             subtitle={`${daysPassed} dias`} icon={Calendar} iconColor="#f97316" />
           <StatCard title="Parcelas em aberto" value={formatCurrency(totalInstallmentDebt)}
@@ -182,7 +182,7 @@ export function Dashboard() {
         )}
 
         {/* Charts row */}
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
           {/* Area chart */}
           <div className="col-span-2 bg-surface-900 border border-white/10 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-6">
@@ -248,7 +248,7 @@ export function Dashboard() {
         </div>
 
         {/* Card usage + Recent transactions */}
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
           <div className="bg-surface-900 border border-white/10 rounded-2xl p-6">
             <h3 className="font-semibold text-white mb-1">Uso por Cartão</h3>
             <p className="text-xs text-slate-400 mb-4">Gasto este mês</p>
@@ -325,7 +325,7 @@ export function Dashboard() {
         {!userId && state.users.length > 1 && (
           <div className="bg-surface-900 border border-white/10 rounded-2xl p-6">
             <h3 className="font-semibold text-white mb-4">Comparativo do Casal</h3>
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
               {state.users.map((u) => {
                 const uTotal  = getTotalForMonth(currentMonth, u.id)
                 const uIncome = getTotalIncomeForMonth(currentMonth, u.id)

@@ -134,7 +134,7 @@ export function Bills() {
     <Layout title="Contas Fixas" subtitle="Controle de gastos recorrentes e despesas fixas">
       <div className="space-y-6">
         {/* Stats */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           <StatCard title="Total mensal" value={formatCurrency(totalMonthly)} icon={DollarSign} iconColor="#0ea5e9" />
           <StatCard title="Total anual" value={formatCurrency(totalAnnual)} subtitle="Projeção 12 meses"
             icon={FileText} iconColor="#a855f7" />
@@ -145,7 +145,7 @@ export function Bills() {
             subtitle="Próximos 5 dias" icon={AlertCircle} iconColor="#f97316" />
         </div>
 
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
           {/* Bills list */}
           <div className="col-span-2 bg-surface-900 border border-white/10 rounded-2xl overflow-hidden">
             <div className="flex items-center justify-between p-6 border-b border-white/10">
