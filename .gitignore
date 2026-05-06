@@ -1,0 +1,23 @@
+# dependencies
+node_modules/
+
+# build
+dist/
+build/
+
+# env (NUNCA commitar — contém chaves)
+.env
+.env.local
+.env.*.local
+
+# logs
+*.log
+npm-debug.log*
+
+# editor
+.vscode/
+.idea/
+.DS_Store
+
+# claude
+.claude/cache/
