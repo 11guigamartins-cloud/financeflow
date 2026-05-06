@@ -9,7 +9,8 @@
       "mcp__Claude_in_Chrome__tabs_context_mcp",
       "Bash(mkdir -p C:/Finance/.claude && cat C:/Finance/.claude/launch.json 2>/dev/null || echo \"not found\")",
       "mcp__Claude_Preview__preview_start",
-      "PowerShell(npm install @supabase/supabase-js 2>&1)"
+      "PowerShell(npm install @supabase/supabase-js 2>&1)",
+      "Bash(npx tsc *)"
     ]
   }
 }

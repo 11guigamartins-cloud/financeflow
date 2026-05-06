@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { Camera, Loader2, AlertCircle } from 'lucide-react'
 import { Modal } from '../ui/Modal'
 import { Input, Select, TextArea } from '../ui/FormField'
 import { useFinance } from '../../contexts/FinanceContext'
 import type { Transaction, PaymentMethod } from '../../types'
 import { CATEGORIES, PAYMENT_METHOD_LABELS } from '../../utils/constants'
 import { format } from 'date-fns'
+import { scanReceipt, fileToBase64 } from '../../lib/gemini'
 
 interface Props {
   isOpen: boolean
@@ -15,6 +17,10 @@ interface Props {
 export function TransactionModal({ isOpen, onClose, transaction }: Props) {
   const { state, dispatch } = useFinance()
   const today = format(new Date(), 'yyyy-MM-dd')
+  const cameraRef = useRef<HTMLInputElement>(null)
+
+  const [scanning, setScanning] = useState(false)
+  const [scanError, setScanError] = useState('')
 
   const [form, setForm] = useState({
     userId:          transaction?.userId ?? state.users[0]?.id ?? '',
@@ -37,9 +43,35 @@ export function TransactionModal({ isOpen, onClose, transaction }: Props) {
 
   const userCards    = state.cards.filter((c) => c.userId === form.userId)
   const userAccounts = state.bankAccounts.filter((a) => a.userId === form.userId)
-
   const needsCard    = form.paymentMethod === 'credit' || form.paymentMethod === 'debit'
   const needsAccount = form.paymentMethod === 'pix' || form.paymentMethod === 'debit'
+
+  async function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setScanError(''); setScanning(true)
+    try {
+      const { base64, mimeType } = await fileToBase64(file)
+      const result = await scanReceipt(base64, mimeType)
+      if (result.ok) {
+        const { description, amount, date, category, note } = result.data
+        setForm((f) => ({
+          ...f,
+          description,
+          amount: String(amount),
+          date,
+          category: category as Transaction['category'],
+          note,
+        }))
+      } else {
+        setScanError(result.error)
+      }
+    } catch {
+      setScanError('Erro ao processar imagem.')
+    }
+    setScanning(false)
+    if (cameraRef.current) cameraRef.current.value = ''
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -74,6 +106,38 @@ export function TransactionModal({ isOpen, onClose, transaction }: Props) {
     <Modal isOpen={isOpen} onClose={onClose} title={transaction ? 'Editar Transação' : 'Nova Transação'} size="lg">
       <form onSubmit={handleSubmit} className="space-y-4">
 
+        {/* Botão escanear nota — só em novas transações */}
+        {!transaction && (
+          <div>
+            <input
+              ref={cameraRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handlePhoto}
+            />
+            <button
+              type="button"
+              onClick={() => cameraRef.current?.click()}
+              disabled={scanning}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-brand-500/40 bg-brand-500/5 hover:bg-brand-500/10 text-brand-400 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {scanning ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Lendo nota fiscal...</>
+              ) : (
+                <><Camera className="w-4 h-4" /> Escanear nota fiscal com IA</>
+              )}
+            </button>
+            {scanError && (
+              <div className="mt-2 flex items-start gap-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                {scanError}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Titular */}
         <Select label="Titular" value={form.userId}
           onChange={(e) => { set('userId', e.target.value); set('cardId', ''); set('bankAccountId', '') }} required>
@@ -106,7 +170,6 @@ export function TransactionModal({ isOpen, onClose, transaction }: Props) {
           </div>
         </div>
 
-        {/* Cartão — só para crédito/débito */}
         {needsCard && (
           <Select label="Cartão" value={form.cardId} onChange={(e) => set('cardId', e.target.value)} required>
             <option value="">Selecione o cartão...</option>
@@ -116,7 +179,6 @@ export function TransactionModal({ isOpen, onClose, transaction }: Props) {
           </Select>
         )}
 
-        {/* Conta bancária — para pix e débito */}
         {needsAccount && (
           <Select label={form.paymentMethod === 'pix' ? 'Banco do Pix' : 'Conta Débito'}
             value={form.bankAccountId} onChange={(e) => set('bankAccountId', e.target.value)}
@@ -128,7 +190,6 @@ export function TransactionModal({ isOpen, onClose, transaction }: Props) {
           </Select>
         )}
 
-        {/* Descrição e valor */}
         <Input label="Descrição" value={form.description}
           onChange={(e) => set('description', e.target.value)}
           placeholder="Ex: Supermercado Pão de Açúcar" required />
@@ -147,7 +208,6 @@ export function TransactionModal({ isOpen, onClose, transaction }: Props) {
           ))}
         </Select>
 
-        {/* Parcelamento — só cartão de crédito */}
         {form.paymentMethod === 'credit' && (
           <div className="bg-surface-800 rounded-xl p-4 space-y-3">
             <label className="flex items-center gap-3 cursor-pointer">
