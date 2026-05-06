@@ -34,16 +34,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data }) => {
-      setSession(data.session)
-      if (data.session?.user) await loadProfile(data.session.user.id)
-      setLoading(false)
-    })
+    supabase.auth.getSession()
+      .then(async ({ data }) => {
+        setSession(data.session)
+        if (data.session?.user) {
+          try { await loadProfile(data.session.user.id) }
+          catch (e) { console.error('loadProfile failed:', e) }
+        }
+      })
+      .catch((e) => console.error('getSession failed:', e))
+      .finally(() => setLoading(false))
 
     const { data: sub } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       setSession(newSession)
-      if (newSession?.user) await loadProfile(newSession.user.id)
-      else setProfile(null)
+      if (newSession?.user) {
+        try { await loadProfile(newSession.user.id) }
+        catch (e) { console.error('loadProfile failed:', e) }
+      } else {
+        setProfile(null)
+      }
     })
 
     return () => sub.subscription.unsubscribe()
