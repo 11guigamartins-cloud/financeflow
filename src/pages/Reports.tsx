@@ -140,7 +140,7 @@ export function Reports() {
               <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false}
                 tickFormatter={(v) => `R$${(v / 1000).toFixed(1)}k`} />
-              <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => formatCurrency(v)} />
+              <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => formatCurrency(Number(v))} />
               <Legend formatter={(v) => <span style={{ color: '#94a3b8', fontSize: 12 }}>{v}</span>} />
               {userId ? (
                 <Line type="monotone" dataKey="Total" stroke="#0ea5e9" strokeWidth={2.5}
@@ -169,7 +169,7 @@ export function Reports() {
                   tickFormatter={(v) => `R$${v}`} />
                 <YAxis type="category" dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false}
                   tickLine={false} width={80} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => formatCurrency(v)} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => formatCurrency(Number(v))} />
                 <Legend formatter={(v) => <span style={{ color: '#94a3b8', fontSize: 11 }}>{v}</span>} />
                 <Bar dataKey="Este mês" fill="#0ea5e9" radius={[0, 4, 4, 0]} />
                 <Bar dataKey="Mês anterior" fill="#334155" radius={[0, 4, 4, 0]} />
@@ -188,7 +188,7 @@ export function Reports() {
                 <PolarAngleAxis dataKey="category" tick={{ fill: '#94a3b8', fontSize: 10 }} />
                 <Radar name="Média mensal" dataKey="value" stroke="#0ea5e9" fill="#0ea5e9" fillOpacity={0.2}
                   strokeWidth={2} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => formatCurrency(v)} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => formatCurrency(Number(v))} />
               </RadarChart>
             </ResponsiveContainer>
           </div>
@@ -205,7 +205,7 @@ export function Reports() {
                 <XAxis dataKey="day" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false}
                   tickFormatter={(v) => `R$${v}`} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => formatCurrency(v)} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => formatCurrency(Number(v))} />
                 <Bar dataKey="média" fill="#a855f7" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>

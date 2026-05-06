@@ -214,7 +214,7 @@ export function Income() {
               <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false}
                 tickFormatter={(v) => `R$${(v / 1000).toFixed(1)}k`} />
-              <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => formatCurrency(v)} />
+              <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => formatCurrency(Number(v))} />
               <Legend formatter={(v) => <span style={{ color: '#94a3b8', fontSize: 12 }}>{v}</span>} />
               <Bar dataKey="Entradas" fill="#22c55e" radius={[4, 4, 0, 0]} />
               <Bar dataKey="Gastos"   fill="#ef4444" radius={[4, 4, 0, 0]} />

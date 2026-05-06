@@ -207,7 +207,7 @@ export function Dashboard() {
                 <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false}
                   tickFormatter={(v) => `R$${(v / 1000).toFixed(1)}k`} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => formatCurrency(v)} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => formatCurrency(Number(v))} />
                 <Legend formatter={(v) => <span style={{ color: '#94a3b8', fontSize: 12 }}>{v}</span>} />
                 <Area type="monotone" dataKey="Entradas" stroke="#22c55e" fill="url(#entradasGrad)" strokeWidth={2} />
                 <Area type="monotone" dataKey="Gastos"   stroke="#ef4444" fill="url(#gastosGrad)"   strokeWidth={2} />
@@ -227,7 +227,7 @@ export function Dashboard() {
                       paddingAngle={3} dataKey="value">
                       {byCategory.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                     </Pie>
-                    <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => formatCurrency(v)} />
+                    <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => formatCurrency(Number(v))} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="space-y-1.5 mt-2">
@@ -259,7 +259,7 @@ export function Dashboard() {
                   tickFormatter={(v) => `R$${v}`} />
                 <YAxis type="category" dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10 }}
                   axisLine={false} tickLine={false} width={120} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => formatCurrency(v)} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => formatCurrency(Number(v))} />
                 <Bar dataKey="usado" fill="#0ea5e9" radius={[0, 6, 6, 0]} />
               </BarChart>
             </ResponsiveContainer>
