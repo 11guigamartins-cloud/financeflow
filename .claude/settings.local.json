@@ -10,7 +10,9 @@
       "Bash(mkdir -p C:/Finance/.claude && cat C:/Finance/.claude/launch.json 2>/dev/null || echo \"not found\")",
       "mcp__Claude_Preview__preview_start",
       "PowerShell(npm install @supabase/supabase-js 2>&1)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(awk 'NR==229,NR==360' C:/Finance/src/contexts/FinanceContext.tsx)",
+      "Bash(awk '{for\\(i=1;i<=length\\($0\\);i++\\){c=substr\\($0,i,1\\); if\\(c==\"{\"\\)b++; if\\(c==\"}\"\\)b--}} END{print \"open braces:\", b}')"
     ]
   }
 }

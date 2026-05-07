@@ -218,7 +218,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     void runAction(a)
   }
 
-  function check<T>(result: { data: T | null; error: any }, label: string): T | null {
+  function check<T,>(result: { data: T | null; error: any }, label: string): T | null {
     if (result.error) {
       console.error(`[FinanceContext] ${label} falhou:`, result.error)
       throw new Error(result.error.message || `${label} falhou`)
