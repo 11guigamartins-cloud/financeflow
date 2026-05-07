@@ -382,7 +382,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   }
 
   const getInstallmentTransactions = () =>
-    state.transactions.filter((t) => t.installment && t.installment.current === 1)
+    state.transactions.filter((t) => !!t.installment)
 
   const getTotalForMonth = (monthKey: string, userId?: string) =>
     getTransactionsForMonth(monthKey, userId).reduce((sum, t) => sum + t.amount, 0)

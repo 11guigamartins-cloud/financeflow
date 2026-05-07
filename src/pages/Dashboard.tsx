@@ -14,6 +14,7 @@ import { CATEGORY_MAP, CATEGORIES, PAYMENT_METHOD_LABELS } from '../utils/consta
 import { TransactionModal } from '../components/transactions/TransactionModal'
 import { format, addMonths } from 'date-fns'
 import { Badge } from '../components/ui/Badge'
+import { buildInstallmentGroups } from './Installments'
 
 const TOOLTIP_STYLE = {
   backgroundColor: '#1e293b',
@@ -74,14 +75,14 @@ export function Dashboard() {
     limite: c.limit ?? 0,
   }))
 
-  // Installments running
-  const runningInstallments = state.transactions.filter(
+  // Installments — use the same grouping as the Installments page so
+  // mid-series entries and duplicate records don't inflate the numbers
+  const installmentTxns = state.transactions.filter(
     (t) => t.installment && (userId ? t.userId === userId : true)
   )
-  const totalInstallmentDebt = runningInstallments.reduce((s, t) => {
-    const remaining = (t.installment!.total - t.installment!.current + 1)
-    return s + t.installment!.amountPerInstallment * remaining
-  }, 0)
+  const installmentGroups = buildInstallmentGroups(installmentTxns)
+  const activeGroups = installmentGroups.filter((g) => !g.isComplete)
+  const totalInstallmentDebt = activeGroups.reduce((s, g) => s + g.totalRemaining, 0)
 
   // Recent transactions
   const recent = [...state.transactions]
@@ -125,7 +126,7 @@ export function Dashboard() {
           <StatCard title="Média diária" value={formatCurrency(avgDaily)}
             subtitle={`${daysPassed} dias`} icon={Calendar} iconColor="#f97316" />
           <StatCard title="Parcelas em aberto" value={formatCurrency(totalInstallmentDebt)}
-            subtitle={`${runningInstallments.length} parcelamentos`}
+            subtitle={`${activeGroups.length} parcelamento${activeGroups.length !== 1 ? 's' : ''}`}
             icon={Layers} iconColor="#a855f7" />
           <StatCard title="Projeção próx. mês" value={formatCurrency(avgLast3)}
             subtitle="Média 3 meses" icon={TrendingDown} iconColor="#94a3b8" />

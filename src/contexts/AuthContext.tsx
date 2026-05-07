@@ -36,54 +36,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let cancelled = false
-    let loadingDone = false
 
-    function finishLoading() {
-      if (!loadingDone && !cancelled) {
-        loadingDone = true
-        clearTimeout(safety)
-        setLoading(false)
-      }
-    }
-
-    // Safety net — if something unexpected hangs, never block the UI forever
     const safety = setTimeout(() => {
-      console.warn('[Auth] safety timeout — forcing loading=false')
-      finishLoading()
+      if (!cancelled) setLoading(false)
     }, 8000)
+
+    // getSession() always returns a fresh, valid token (auto-refreshes if expired).
+    // This is the single source of truth for the initial load — no concurrent
+    // loadProfile calls from onAuthStateChange(INITIAL_SESSION).
+    supabase.auth.getSession()
+      .then(async ({ data }) => {
+        if (cancelled) return
+        setSession(data.session)
+        if (data.session?.user) {
+          try { await loadProfile(data.session.user.id) }
+          catch (e) { console.error('[Auth] loadProfile:', e) }
+        }
+      })
+      .catch((e) => console.error('[Auth] getSession:', e))
+      .finally(() => {
+        clearTimeout(safety)
+        if (!cancelled) setLoading(false)
+      })
 
     const { data: sub } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       if (cancelled) return
 
-      setSession(newSession)
-
-      let profileResult: Profile | null = null
-      if (newSession?.user) {
-        try {
-          profileResult = await loadProfile(newSession.user.id)
-        } catch (e) {
-          console.error('[Auth] loadProfile failed:', e)
-        }
-      } else {
-        setProfile(null)
+      // INITIAL_SESSION: already handled by getSession() above — skip to avoid
+      // a concurrent loadProfile with a potentially stale cached token.
+      // TOKEN_REFRESHED: background token renewal; profile hasn't changed, just
+      // update the session reference so future requests use the new JWT.
+      if (event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
+        setSession(newSession)
+        return
       }
 
-      if (cancelled) return
-
-      // INITIAL_SESSION fires with whatever token is cached in localStorage.
-      // If the access token is expired, auth.uid() is null in Postgres → RLS
-      // blocks the profile query → profileResult is null even though the user
-      // is valid. In that case, Supabase will fire TOKEN_REFRESHED shortly after.
-      // Keep loading=true so the spinner stays up rather than flashing a broken UI.
-      // For every other event (TOKEN_REFRESHED, SIGNED_IN, SIGNED_OUT…) we know
-      // the token is fresh, so we can finish loading regardless of the outcome.
-      if (event === 'INITIAL_SESSION') {
-        if (!newSession || profileResult !== null) {
-          finishLoading()
-        }
-        // else: session exists but profile null → stale JWT, wait for TOKEN_REFRESHED
+      // SIGNED_IN (fresh login), SIGNED_OUT, USER_UPDATED
+      setSession(newSession)
+      if (newSession?.user) {
+        try { await loadProfile(newSession.user.id) }
+        catch (e) { console.error('[Auth] loadProfile:', e) }
       } else {
-        finishLoading()
+        setProfile(null)
       }
     })
 
@@ -113,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signOut() {
-    // Race against a 3 s timeout so a bad network never hangs the redirect
+    // Race against 3 s so a bad network never hangs the redirect
     try {
       await Promise.race([
         supabase.auth.signOut(),
@@ -122,7 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ),
       ])
     } catch (e) {
-      console.error('signOut failed/timed-out:', e)
+      console.error('[Auth] signOut:', e)
     }
     setProfile(null)
     setSession(null)
