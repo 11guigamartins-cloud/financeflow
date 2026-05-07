@@ -395,11 +395,42 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         return t.cardId === cardId && d.getFullYear() === y && d.getMonth() + 1 === m
       })
       .reduce((sum, t) => sum + t.amount, 0)
+
     // Active bills charged to this card also appear in the monthly invoice
     const billTotal = state.bills
       .filter((b) => b.isActive && b.cardId === cardId)
       .reduce((sum, b) => sum + b.amount, 0)
-    return txTotal + billTotal
+
+    // Project future installments (not yet entered as transactions) into their due month.
+    // Groups series by description, finds the latest entered installment, then projects
+    // the remaining ones forward — so each future installment shows in the right month.
+    const seriesMap = new Map<string, Transaction[]>()
+    state.transactions
+      .filter((t) => t.cardId === cardId && !!t.installment)
+      .forEach((t) => {
+        const key = `${t.description}||${cardId}`
+        const arr = seriesMap.get(key) ?? []
+        arr.push(t)
+        seriesMap.set(key, arr)
+      })
+
+    let installmentTotal = 0
+    seriesMap.forEach((entries) => {
+      entries.sort((a, b) => a.installment!.current - b.installment!.current)
+      const latest = entries[entries.length - 1]
+      const paidCount = latest.installment!.current
+      const total = latest.installment!.total
+      const perInstallment = latest.installment!.amountPerInstallment
+      if (paidCount >= total) return
+      const ld = new Date(latest.date)
+      for (let n = 1; n <= total - paidCount; n++) {
+        const due = new Date(ld.getFullYear(), ld.getMonth() + n, 1)
+        const dueKey = `${due.getFullYear()}-${String(due.getMonth() + 1).padStart(2, '0')}`
+        if (dueKey === monthKey) { installmentTotal += perInstallment; break }
+      }
+    })
+
+    return txTotal + billTotal + installmentTotal
   }
 
   const getIncomesForMonth = (monthKey: string, userId?: string) => {
