@@ -25,7 +25,7 @@ export function Transactions() {
   const [sortKey, setSortKey] = useState<SortKey>('date')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
 
-  const months = Array.from({ length: 12 }, (_, i) => {
+  const months = Array.from({ length: 24 }, (_, i) => {
     const d = subMonths(new Date(), i)
     return { key: format(d, 'yyyy-MM'), label: format(d, 'MMMM yyyy', { locale: ptBR }) }
   })
@@ -79,6 +79,7 @@ export function Transactions() {
 
             <select value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)}
               className="bg-surface-800 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none capitalize">
+              <option value="">Todos os meses</option>
               {months.map((m) => <option key={m.key} value={m.key} className="capitalize">{m.label}</option>)}
             </select>
 
@@ -234,6 +235,7 @@ export function Transactions() {
         isOpen={modalOpen}
         onClose={() => { setModalOpen(false); setEditTx(undefined) }}
         transaction={editTx}
+        onAdd={(month) => setFilterMonth(month)}
       />
     </Layout>
   )

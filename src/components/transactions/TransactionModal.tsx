@@ -12,9 +12,10 @@ interface Props {
   isOpen: boolean
   onClose: () => void
   transaction?: Transaction
+  onAdd?: (month: string) => void
 }
 
-export function TransactionModal({ isOpen, onClose, transaction }: Props) {
+export function TransactionModal({ isOpen, onClose, transaction, onAdd }: Props) {
   const { state, dispatch } = useFinance()
   const today = format(new Date(), 'yyyy-MM-dd')
   const cameraRef = useRef<HTMLInputElement>(null)
@@ -98,6 +99,7 @@ export function TransactionModal({ isOpen, onClose, transaction }: Props) {
       dispatch({ type: 'UPDATE_TRANSACTION', transaction: { ...base, id: transaction.id } })
     } else {
       dispatch({ type: 'ADD_TRANSACTION', transaction: base })
+      onAdd?.(form.date.slice(0, 7))
     }
     onClose()
   }
