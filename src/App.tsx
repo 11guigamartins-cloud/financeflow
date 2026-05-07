@@ -10,6 +10,7 @@ import { Reports } from './pages/Reports'
 import { Income } from './pages/Income'
 import { Payments } from './pages/Payments'
 import { Login } from './pages/Login'
+import { Admin } from './pages/Admin'
 
 function ProtectedShell({ children }: { children: React.ReactNode }) {
   const { session, profile, loading, signOut } = useAuth()
@@ -21,16 +22,41 @@ function ProtectedShell({ children }: { children: React.ReactNode }) {
     )
   }
   if (!session) return <Navigate to="/login" replace />
+  if (profile && !profile.approved) {
+    return (
+      <div className="min-h-screen bg-surface-950 flex items-center justify-center p-6">
+        <div className="text-center space-y-4 max-w-sm">
+          <div className="w-16 h-16 rounded-2xl bg-brand-500/20 flex items-center justify-center mx-auto">
+            <svg className="w-8 h-8 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <p className="text-white font-semibold text-lg">Aguardando aprovação</p>
+          <p className="text-slate-400 text-sm">Sua conta foi criada com sucesso! Um administrador irá aprovar o seu acesso em breve.</p>
+          <button
+            onClick={() => signOut()}
+            className="px-6 py-3 bg-white/10 hover:bg-white/15 text-slate-300 rounded-xl font-medium transition-colors text-sm">
+            Sair
+          </button>
+        </div>
+      </div>
+    )
+  }
   if (!profile) {
     return (
       <div className="min-h-screen bg-surface-950 flex items-center justify-center p-6">
         <div className="text-center space-y-4 max-w-sm">
-          <p className="text-white font-semibold text-lg">Perfil não encontrado</p>
-          <p className="text-slate-400 text-sm">Sua sessão está em um estado inconsistente. Faça logout e entre novamente.</p>
+          <div className="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center mx-auto">
+            <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <p className="text-white font-semibold text-lg">Sessão expirada</p>
+          <p className="text-slate-400 text-sm">Sua sessão expirou. Faça o login novamente para continuar.</p>
           <button
             onClick={() => signOut()}
-            className="px-6 py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-medium transition-colors">
-            Sair e limpar sessão
+            className="px-6 py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-medium transition-colors">
+            Fazer login novamente
           </button>
         </div>
       </div>
@@ -60,6 +86,7 @@ export default function App() {
           <Route path="/bills"        element={<ProtectedShell><Bills /></ProtectedShell>} />
           <Route path="/payments"     element={<ProtectedShell><Payments /></ProtectedShell>} />
           <Route path="/reports"      element={<ProtectedShell><Reports /></ProtectedShell>} />
+          <Route path="/admin"        element={<ProtectedShell><Admin /></ProtectedShell>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

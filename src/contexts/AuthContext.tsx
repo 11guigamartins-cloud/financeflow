@@ -8,6 +8,8 @@ interface Profile {
   display_name: string
   color: string
   avatar: string
+  approved: boolean
+  isAdmin: boolean
 }
 
 interface AuthContextValue {
@@ -30,8 +32,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function loadProfile(userId: string): Promise<Profile | null> {
     const { data } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle()
-    setProfile(data ?? null)
-    return data ?? null
+    if (!data) { setProfile(null); return null }
+    const p: Profile = {
+      id: data.id,
+      household_id: data.household_id,
+      display_name: data.display_name,
+      color: data.color,
+      avatar: data.avatar,
+      approved: data.approved ?? false,
+      isAdmin: data.is_admin ?? false,
+    }
+    setProfile(p)
+    return p
   }
 
   useEffect(() => {

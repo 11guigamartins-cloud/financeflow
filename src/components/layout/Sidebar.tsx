@@ -1,12 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, CreditCard, ArrowLeftRight,
   Layers, FileText, BarChart2, Wallet, TrendingUp, CheckSquare,
-  LogOut, UserPlus, Copy, Check, X,
+  LogOut, UserPlus, Copy, Check, X, Shield,
 } from 'lucide-react'
 import { useFinance } from '../../contexts/FinanceContext'
 import { useAuth } from '../../contexts/AuthContext'
+import { supabase } from '../../lib/supabase'
 
 const NAV = [
   { to: '/',              icon: LayoutDashboard, label: 'Dashboard'        },
@@ -67,6 +68,13 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
   const { state, dispatch } = useFinance()
   const { profile, signOut } = useAuth()
   const [showInvite, setShowInvite] = useState(false)
+  const [pendingCount, setPendingCount] = useState(0)
+
+  useEffect(() => {
+    if (!profile?.isAdmin) return
+    supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('approved', false)
+      .then(({ count }) => setPendingCount(count ?? 0))
+  }, [profile?.isAdmin])
 
   return (
     <>
@@ -146,6 +154,27 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
               {label}
             </NavLink>
           ))}
+          {profile?.isAdmin && (
+            <NavLink
+              to="/admin"
+              onClick={onNavigate}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-medium ${
+                  isActive
+                    ? 'bg-brand-500/20 text-brand-400 border border-brand-500/20'
+                    : 'text-slate-400 hover:bg-white/5 hover:text-white border border-transparent'
+                }`
+              }
+            >
+              <Shield className="w-[18px] h-[18px] shrink-0" />
+              Administração
+              {pendingCount > 0 && (
+                <span className="ml-auto w-5 h-5 bg-orange-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                  {pendingCount}
+                </span>
+              )}
+            </NavLink>
+          )}
         </nav>
 
         {/* Footer — perfil + ações */}
