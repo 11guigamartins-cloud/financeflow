@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Layers, CheckCircle2, Clock, AlertTriangle, Plus, ChevronDown, ChevronUp } from 'lucide-react'
+import { Layers, CheckCircle2, Clock, AlertTriangle, Plus, ChevronDown, ChevronUp, Edit2, Trash2 } from 'lucide-react'
 import { Layout } from '../components/layout/Layout'
 import { Badge } from '../components/ui/Badge'
 import { StatCard } from '../components/ui/StatCard'
@@ -52,10 +52,18 @@ export function buildInstallmentGroups(txns: Transaction[]): InstallmentGroup[] 
 }
 
 export function Installments() {
-  const { state } = useFinance()
+  const { state, dispatch } = useFinance()
   const [addOpen, setAddOpen] = useState(false)
+  const [editTx, setEditTx] = useState<Transaction | undefined>()
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'active' | 'complete'>('active')
+
+  function handleDelete(g: InstallmentGroup) {
+    const label = `"${g.rep.description}" (${g.paidCount}/${g.total} parcelas)`
+    if (!confirm(`Excluir o parcelamento ${label} e todos os seus registros?`)) return
+    g.entries.forEach((t) => dispatch({ type: 'DELETE_TRANSACTION', transactionId: t.id }))
+    if (expandedId === g.rep.id) setExpandedId(null)
+  }
 
   const userId = state.activeUserId || undefined
 
@@ -206,8 +214,22 @@ export function Installments() {
                         </p>
                       </div>
 
-                      <div className="ml-2 text-slate-500">
-                        {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      <div className="ml-2 flex items-center gap-1">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setEditTx(g.rep); setAddOpen(true) }}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-brand-400 hover:bg-brand-500/10 transition-colors"
+                          title="Editar">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDelete(g) }}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                          title="Excluir">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                        <div className="text-slate-500 ml-1">
+                          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -245,7 +267,11 @@ export function Installments() {
         </div>
       </div>
 
-      <TransactionModal isOpen={addOpen} onClose={() => setAddOpen(false)} />
+      <TransactionModal
+        isOpen={addOpen}
+        onClose={() => { setAddOpen(false); setEditTx(undefined) }}
+        transaction={editTx}
+      />
     </Layout>
   )
 }
