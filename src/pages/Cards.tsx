@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { Plus, Edit2, Trash2, TrendingDown, Landmark, RefreshCw } from 'lucide-react'
+import { Plus, Edit2, Trash2, TrendingDown, Landmark, RefreshCw, ChevronLeft, ChevronRight, CheckCircle2, Clock } from 'lucide-react'
+import { addMonths, subMonths, format as dateFnsFormat } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 import { Layout } from '../components/layout/Layout'
 import { CreditCardVisual } from '../components/cards/CreditCardVisual'
 import { CardModal } from '../components/cards/CardModal'
@@ -58,16 +60,19 @@ function UpdateBalanceModal({ account, onClose }: { account: BankAccount; onClos
 }
 
 export function Cards() {
-  const { state, dispatch, getCardUsageForMonth, getTotalBankBalance } = useFinance()
+  const { state, dispatch, getCardUsageForMonth, getTotalBankBalance, getInvoicePayment } = useFinance()
   const [cardModalOpen, setCardModalOpen] = useState(false)
   const [editCard, setEditCard] = useState<Card | undefined>()
   const [selectedCard, setSelectedCard] = useState<string | null>(null)
+  const [detailMonthDate, setDetailMonthDate] = useState(new Date())
   const [accModalOpen, setAccModalOpen] = useState(false)
   const [editAcc, setEditAcc] = useState<BankAccount | undefined>()
   const [updateBalAcc, setUpdateBalAcc] = useState<BankAccount | undefined>()
 
   const userId = state.activeUserId || undefined
   const currentMonth = format(new Date(), 'yyyy-MM')
+  const detailMonthKey = format(detailMonthDate, 'yyyy-MM')
+  const detailMonthLabel = dateFnsFormat(detailMonthDate, 'MMMM yyyy', { locale: ptBR })
 
   const visibleCards    = userId ? state.cards.filter((c) => c.userId === userId) : state.cards
   const visibleAccounts = userId ? state.bankAccounts.filter((a) => a.userId === userId) : state.bankAccounts
@@ -94,10 +99,31 @@ export function Cards() {
     : []
 
   const selected      = state.cards.find((c) => c.id === selectedCard)
-  const selectedUsage = selectedCard ? getCardUsageForMonth(selectedCard, currentMonth) : 0
-  const selectedTxns  = selectedCard
-    ? [...state.transactions].filter((t) => t.cardId === selectedCard)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 10)
+  const selectedUsage = selectedCard ? getCardUsageForMonth(selectedCard, detailMonthKey) : 0
+
+  // Detail month breakdown
+  const detailTxns = selectedCard
+    ? (() => {
+        const [y, m] = detailMonthKey.split('-').map(Number)
+        return [...state.transactions]
+          .filter((t) => {
+            if (t.cardId !== selectedCard) return false
+            const d = new Date(t.date)
+            return d.getFullYear() === y && d.getMonth() + 1 === m
+          })
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      })()
+    : []
+  const detailBills = selectedCard
+    ? state.bills.filter((b) => b.isActive && b.cardId === selectedCard)
+    : []
+
+  // Invoice payment history for selected card
+  const invoiceHistory = selectedCard
+    ? [...state.invoicePayments]
+        .filter((p) => p.cardId === selectedCard)
+        .sort((a, b) => b.monthKey.localeCompare(a.monthKey))
+        .slice(0, 6)
     : []
 
   return (
@@ -185,57 +211,130 @@ export function Cards() {
 
         {/* ── Selected card detail ──────────────────────────────────────── */}
         {selected && (
-          <div className="bg-surface-900 border border-white/10 rounded-2xl p-6 space-y-6">
-            <div className="flex items-center justify-between">
+          <div className="bg-surface-900 border border-white/10 rounded-2xl overflow-hidden">
+            {/* Header with month nav */}
+            <div className="flex items-center justify-between p-5 border-b border-white/10">
               <h3 className="font-semibold text-white">{selected.name} — Detalhes</h3>
-              <div className="flex items-center gap-2 text-sm text-slate-400">
-                <TrendingDown className="w-4 h-4" />
-                Fatura atual: <span className="text-white font-semibold ml-1">{formatCurrency(selectedUsage)}</span>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setDetailMonthDate((d) => subMonths(d, 1))}
+                  className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400">
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="text-sm text-white capitalize w-32 text-center">{detailMonthLabel}</span>
+                <button onClick={() => setDetailMonthDate((d) => addMonths(d, 1))}
+                  className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400">
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-              <div>
-                <h4 className="text-sm font-medium text-slate-400 mb-3">Histórico (6 meses)</h4>
-                <ResponsiveContainer width="100%" height={180}>
-                  <BarChart data={historyData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" />
-                    <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false}
-                      tickFormatter={(v) => `R$${v}`} />
-                    <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => formatCurrency(Number(v))} />
-                    <Bar dataKey="gasto" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              <div>
-                <h4 className="text-sm font-medium text-slate-400 mb-3">Últimas transações</h4>
-                <div className="space-y-2 max-h-44 overflow-y-auto">
-                  {selectedTxns.length === 0 ? (
-                    <p className="text-slate-500 text-sm">Nenhuma transação</p>
-                  ) : selectedTxns.map((t) => (
-                    <div key={t.id} className="flex items-center justify-between py-2 border-b border-white/5">
-                      <div>
-                        <p className="text-sm text-white">{t.description}</p>
-                        <p className="text-xs text-slate-500">{new Date(t.date).toLocaleDateString('pt-BR')}</p>
-                      </div>
-                      <span className="text-sm font-semibold text-white">{formatCurrency(t.amount)}</span>
+
+            <div className="p-5 space-y-5">
+              {/* Invoice total & status */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-slate-400">Fatura {detailMonthKey < currentMonth ? 'fechada' : 'em aberto'}</p>
+                  <p className="text-2xl font-bold text-white">{formatCurrency(selectedUsage)}</p>
+                </div>
+                {(() => {
+                  const inv = getInvoicePayment(selected.id, detailMonthKey)
+                  if (inv?.isPaid) return (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-xl text-sm">
+                      <CheckCircle2 className="w-4 h-4" /> Paga em {inv.paidDate ? new Date(inv.paidDate).toLocaleDateString('pt-BR') : '—'}
                     </div>
-                  ))}
+                  )
+                  if (detailMonthKey < currentMonth) return (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 text-amber-400 rounded-xl text-sm">
+                      <Clock className="w-4 h-4" /> Pendente
+                      {selected.dueDay && <span>· vence dia {selected.dueDay}</span>}
+                    </div>
+                  )
+                  return null
+                })()}
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {/* 6-month chart */}
+                <div>
+                  <h4 className="text-xs font-medium text-slate-400 mb-3">Histórico (6 meses)</h4>
+                  <ResponsiveContainer width="100%" height={140}>
+                    <BarChart data={historyData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" />
+                      <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false}
+                        tickFormatter={(v) => `R$${v}`} />
+                      <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => formatCurrency(Number(v))} />
+                      <Bar dataKey="gasto" fill="#0ea5e9" radius={[3, 3, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Invoice breakdown */}
+                <div>
+                  <h4 className="text-xs font-medium text-slate-400 mb-3">Composição da fatura</h4>
+                  <div className="space-y-2">
+                    {detailBills.map((b) => (
+                      <div key={b.id} className="flex items-center justify-between py-1.5 border-b border-white/5">
+                        <div>
+                          <p className="text-xs text-white">{b.name}</p>
+                          <p className="text-xs text-slate-500">recorrente · dia {b.dueDay}</p>
+                        </div>
+                        <span className="text-xs font-medium text-white">{formatCurrency(b.amount)}</span>
+                      </div>
+                    ))}
+                    {detailTxns.map((t) => (
+                      <div key={t.id} className="flex items-center justify-between py-1.5 border-b border-white/5">
+                        <div>
+                          <p className="text-xs text-white truncate max-w-28">{t.description}</p>
+                          <p className="text-xs text-slate-500">{new Date(t.date).toLocaleDateString('pt-BR')}</p>
+                        </div>
+                        <span className="text-xs font-medium text-white">{formatCurrency(t.amount)}</span>
+                      </div>
+                    ))}
+                    {detailTxns.length === 0 && detailBills.length === 0 && (
+                      <p className="text-xs text-slate-500">Nenhum gasto neste mês</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Invoice payment history */}
+                <div>
+                  <h4 className="text-xs font-medium text-slate-400 mb-3">Histórico de pagamentos</h4>
+                  <div className="space-y-2">
+                    {invoiceHistory.length === 0 ? (
+                      <p className="text-xs text-slate-500">Nenhuma fatura paga</p>
+                    ) : invoiceHistory.map((inv) => {
+                      const acc = state.bankAccounts.find((a) => a.id === inv.bankAccountId)
+                      return (
+                        <div key={inv.id} className="flex items-center justify-between py-1.5 border-b border-white/5">
+                          <div>
+                            <p className="text-xs text-white capitalize">{inv.monthKey}</p>
+                            <p className="text-xs text-slate-500">{acc?.bank ?? 'sem conta'}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs font-medium text-emerald-400">{formatCurrency(inv.amount)}</p>
+                            <p className="text-xs text-slate-500">{inv.paidDate ? new Date(inv.paidDate).toLocaleDateString('pt-BR') : '—'}</p>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 pt-2 border-t border-white/10">
-              {[
-                { label: 'Banco',      value: selected.bank },
-                { label: 'Bandeira',   value: selected.network.toUpperCase() },
-                { label: 'Fecha dia',  value: selected.closingDay ? `${selected.closingDay}` : '—' },
-                { label: 'Vence dia',  value: selected.dueDay     ? `${selected.dueDay}` : '—' },
-              ].map(({ label, value }) => (
-                <div key={label} className="bg-surface-800 rounded-xl p-3">
-                  <p className="text-xs text-slate-500">{label}</p>
-                  <p className="text-sm font-semibold text-white mt-0.5">{value}</p>
-                </div>
-              ))}
+
+              {/* Card info */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-2 border-t border-white/10">
+                {[
+                  { label: 'Banco',     value: selected.bank },
+                  { label: 'Bandeira',  value: selected.network.toUpperCase() },
+                  { label: 'Fecha dia', value: selected.closingDay ? `${selected.closingDay}` : '—' },
+                  { label: 'Vence dia', value: selected.dueDay     ? `${selected.dueDay}` : '—' },
+                ].map(({ label, value }) => (
+                  <div key={label} className="bg-surface-800 rounded-xl p-3">
+                    <p className="text-xs text-slate-500">{label}</p>
+                    <p className="text-sm font-semibold text-white mt-0.5">{value}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}

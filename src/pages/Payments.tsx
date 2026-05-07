@@ -149,14 +149,16 @@ interface ConfirmPayModalProps {
   userId: string
   currentDate?: string
   prefillBankAccountId?: string
-  onConfirm: (date: string, bankAccountId: string) => void
+  editableAmount?: boolean
+  onConfirm: (date: string, bankAccountId: string, amount: number) => void
   onCancel: () => void
 }
 
-function ConfirmPayModal({ title, amount, userId, currentDate, prefillBankAccountId, onConfirm, onCancel }: ConfirmPayModalProps) {
+function ConfirmPayModal({ title, amount: initialAmount, userId, currentDate, prefillBankAccountId, editableAmount, onConfirm, onCancel }: ConfirmPayModalProps) {
   const { state } = useFinance()
   const [date, setDate] = useState(currentDate ?? format(new Date(), 'yyyy-MM-dd'))
   const [bankAccountId, setBankAccountId] = useState(prefillBankAccountId ?? '')
+  const [amount, setAmount] = useState(initialAmount)
   const userAccounts = state.bankAccounts.filter((a) => a.userId === userId)
 
   return (
@@ -164,8 +166,21 @@ function ConfirmPayModal({ title, amount, userId, currentDate, prefillBankAccoun
       <div className="bg-surface-900 border border-white/10 rounded-2xl w-full max-w-sm">
         <div className="p-6">
           <h3 className="text-base font-semibold text-white mb-1">Confirmar Pagamento</h3>
-          <p className="text-sm text-slate-400 mb-4">{title} — <span className="text-white font-medium">{formatCurrency(amount)}</span></p>
+          <p className="text-sm text-slate-400 mb-4">{title}</p>
           <div className="space-y-3">
+            {editableAmount ? (
+              <div>
+                <label className="block text-xs text-slate-400 mb-1.5">Valor da fatura (R$)</label>
+                <input type="number" step="0.01" value={amount} onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
+                  className="w-full bg-surface-800 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500" />
+                <p className="text-xs text-slate-500 mt-1">Ajuste se o valor real da fatura for diferente</p>
+              </div>
+            ) : (
+              <div className="bg-surface-800 rounded-xl px-3 py-2 flex justify-between items-center">
+                <span className="text-xs text-slate-400">Valor</span>
+                <span className="text-white font-semibold">{formatCurrency(amount)}</span>
+              </div>
+            )}
             <div>
               <label className="block text-xs text-slate-400 mb-1.5">Data do pagamento</label>
               <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
@@ -183,7 +198,7 @@ function ConfirmPayModal({ title, amount, userId, currentDate, prefillBankAccoun
         </div>
         <div className="px-6 pb-6 flex gap-3">
           <button onClick={onCancel} className="flex-1 py-2.5 border border-white/10 rounded-xl text-sm text-slate-400 hover:text-white transition-colors">Cancelar</button>
-          <button onClick={() => onConfirm(date, bankAccountId)}
+          <button onClick={() => onConfirm(date, bankAccountId, amount)}
             className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-medium transition-colors">
             Confirmar
           </button>
@@ -196,11 +211,12 @@ function ConfirmPayModal({ title, amount, userId, currentDate, prefillBankAccoun
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export function Payments() {
-  const { state, dispatch, getBillPayment, getInvoicePayment, getCardUsageForMonth } = useFinance()
+  const { state, dispatch, getBillPayment, getInvoicePayment, getCardUsageForMonth, getBankAccountById } = useFinance()
   const [tab, setTab] = useState<Tab>('bills')
   const [monthDate, setMonthDate] = useState(new Date())
   const monthKey = format(monthDate, 'yyyy-MM')
   const monthLabel = format(monthDate, 'MMMM yyyy', { locale: ptBR })
+  const currentMonthKey = format(new Date(), 'yyyy-MM')
 
   const [confirmTarget, setConfirmTarget] = useState<{
     type: 'bill' | 'invoice' | 'boleto'
@@ -210,14 +226,28 @@ export function Payments() {
     userId: string
     currentDate?: string
     prefillBankAccountId?: string
+    editableAmount?: boolean
   } | null>(null)
+
+  function adjustBalance(bankAccountId: string | undefined, delta: number) {
+    if (!bankAccountId) return
+    const account = getBankAccountById(bankAccountId)
+    if (!account) return
+    dispatch({ type: 'SET_BANK_BALANCE', accountId: bankAccountId, balance: account.balance + delta })
+  }
 
   const [boletoModal, setBoletoModal] = useState(false)
   const [editBoleto, setEditBoleto] = useState<Boleto | undefined>()
 
   // ── Bills tab ──────────────────────────────────────────────────────────────
+  // Only show bills NOT on a card — those appear inside the card invoice
   const activeBills = useMemo(() =>
-    state.bills.filter((b) => b.isActive && (!state.activeUserId || b.userId === state.activeUserId)),
+    state.bills.filter((b) => b.isActive && !b.cardId && (!state.activeUserId || b.userId === state.activeUserId)),
+    [state.bills, state.activeUserId]
+  )
+  // Card-linked bills (informational only — paid via invoice)
+  const cardLinkedBills = useMemo(() =>
+    state.bills.filter((b) => b.isActive && !!b.cardId && (!state.activeUserId || b.userId === state.activeUserId)),
     [state.bills, state.activeUserId]
   )
 
@@ -260,44 +290,49 @@ export function Payments() {
     const payment = getBillPayment(billId, monthKey)
     const bill = state.bills.find((b) => b.id === billId)!
     if (payment?.isPaid) {
+      adjustBalance(payment.bankAccountId, payment.amount)
       dispatch({ type: 'UPSERT_BILL_PAYMENT', payment: { id: payment.id, billId, monthKey, amount: bill.amount, isPaid: false, paidDate: undefined, bankAccountId: undefined } })
     } else {
-      const userId = bill.userId
-      setConfirmTarget({ type: 'bill', id: billId, title: bill.name, amount: payment?.amount ?? bill.amount, userId })
+      setConfirmTarget({ type: 'bill', id: billId, title: bill.name, amount: payment?.amount ?? bill.amount, userId: bill.userId })
     }
   }
 
   function handleInvoiceToggle(cardId: string) {
     const payment = getInvoicePayment(cardId, monthKey)
     const card = state.cards.find((c) => c.id === cardId)!
-    const amount = getCardUsageForMonth(cardId, monthKey)
+    const computedAmount = getCardUsageForMonth(cardId, monthKey)
     if (payment?.isPaid) {
-      dispatch({ type: 'UPSERT_INVOICE_PAYMENT', payment: { id: payment.id, cardId, monthKey, amount, isPaid: false, paidDate: undefined, bankAccountId: undefined } })
+      adjustBalance(payment.bankAccountId, payment.amount)
+      dispatch({ type: 'UPSERT_INVOICE_PAYMENT', payment: { id: payment.id, cardId, monthKey, amount: computedAmount, isPaid: false, paidDate: undefined, bankAccountId: undefined } })
     } else {
-      setConfirmTarget({ type: 'invoice', id: cardId, title: `Fatura ${card.name}`, amount: payment?.amount ?? amount, userId: card.userId, prefillBankAccountId: card.bankAccountId })
+      setConfirmTarget({ type: 'invoice', id: cardId, title: `Fatura ${card.name}`, amount: payment?.amount ?? computedAmount, userId: card.userId, prefillBankAccountId: card.bankAccountId, editableAmount: true })
     }
   }
 
   function handleBoletoToggle(boleto: Boleto) {
     if (boleto.isPaid) {
+      adjustBalance(boleto.bankAccountId, boleto.amount)
       dispatch({ type: 'UPDATE_BOLETO', boleto: { ...boleto, isPaid: false, paidDate: undefined, bankAccountId: undefined } })
     } else {
       setConfirmTarget({ type: 'boleto', id: boleto.id, title: boleto.description, amount: boleto.amount, userId: boleto.userId })
     }
   }
 
-  function handleConfirm(date: string, bankAccountId: string) {
+  function handleConfirm(date: string, bankAccountId: string, amount: number) {
     if (!confirmTarget) return
     const { type, id } = confirmTarget
+    const acctId = bankAccountId || undefined
     if (type === 'bill') {
       const bill = state.bills.find((b) => b.id === id)!
-      dispatch({ type: 'UPSERT_BILL_PAYMENT', payment: { billId: id, monthKey, amount: bill.amount, isPaid: true, paidDate: date, bankAccountId: bankAccountId || undefined } })
+      dispatch({ type: 'UPSERT_BILL_PAYMENT', payment: { billId: id, monthKey, amount: bill.amount, isPaid: true, paidDate: date, bankAccountId: acctId } })
+      adjustBalance(acctId, -bill.amount)
     } else if (type === 'invoice') {
-      const amount = getCardUsageForMonth(id, monthKey)
-      dispatch({ type: 'UPSERT_INVOICE_PAYMENT', payment: { cardId: id, monthKey, amount, isPaid: true, paidDate: date, bankAccountId: bankAccountId || undefined } })
+      dispatch({ type: 'UPSERT_INVOICE_PAYMENT', payment: { cardId: id, monthKey, amount, isPaid: true, paidDate: date, bankAccountId: acctId } })
+      adjustBalance(acctId, -amount)
     } else {
       const boleto = state.boletos.find((b) => b.id === id)!
-      dispatch({ type: 'UPDATE_BOLETO', boleto: { ...boleto, isPaid: true, paidDate: date, bankAccountId: bankAccountId || undefined } })
+      dispatch({ type: 'UPDATE_BOLETO', boleto: { ...boleto, isPaid: true, paidDate: date, bankAccountId: acctId } })
+      adjustBalance(acctId, -boleto.amount)
     }
     setConfirmTarget(null)
   }
@@ -363,8 +398,10 @@ export function Payments() {
             </div>
 
             <div className="bg-surface-900 border border-white/10 rounded-2xl overflow-hidden">
-              {activeBills.length === 0 ? (
+              {activeBills.length === 0 && cardLinkedBills.length === 0 ? (
                 <p className="text-center text-slate-500 py-12">Nenhuma conta fixa cadastrada</p>
+              ) : activeBills.length === 0 ? (
+                <p className="text-center text-slate-500 py-8 text-sm">Todas as contas fixas estão incluídas nas faturas dos cartões</p>
               ) : (
                 <div className="divide-y divide-white/5">
                   {activeBills.map((bill) => {
@@ -372,7 +409,6 @@ export function Payments() {
                     const isPaid = payment?.isPaid ?? false
                     const cat = CATEGORY_MAP[bill.category]
                     const user = state.users.find((u) => u.id === bill.userId)
-                    const linkedCard = bill.cardId ? state.cards.find((c) => c.id === bill.cardId) : undefined
                     return (
                       <div key={bill.id} className={`flex items-center gap-4 px-5 py-4 transition-colors ${isPaid ? 'opacity-60' : 'hover:bg-white/5'}`}>
                         <button onClick={() => handleBillToggle(bill.id)} className="shrink-0">
@@ -388,13 +424,13 @@ export function Payments() {
                           <p className={`text-sm font-medium ${isPaid ? 'line-through text-slate-500' : 'text-white'}`}>{bill.name}</p>
                           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                             <p className="text-xs text-slate-500">Vence dia {bill.dueDay}</p>
-                            {linkedCard && (
-                              <span className="text-xs text-brand-400 bg-brand-500/10 px-1.5 py-0.5 rounded-md">
-                                via fatura {linkedCard.name}
-                              </span>
-                            )}
                             {payment?.paidDate && (
                               <p className="text-xs text-emerald-400">Pago em {new Date(payment.paidDate).toLocaleDateString('pt-BR')}</p>
+                            )}
+                            {payment?.bankAccountId && (
+                              <p className="text-xs text-slate-500">
+                                {state.bankAccounts.find((a) => a.id === payment.bankAccountId)?.bank ?? ''}
+                              </p>
                             )}
                           </div>
                         </div>
@@ -408,6 +444,41 @@ export function Payments() {
                       </div>
                     )
                   })}
+                </div>
+              )}
+              {cardLinkedBills.length > 0 && (
+                <div className="border-t border-white/5">
+                  <div className="px-5 py-3 bg-surface-800/50">
+                    <p className="text-xs text-slate-500 flex items-center gap-1.5">
+                      <CreditCard className="w-3.5 h-3.5" />
+                      {cardLinkedBills.length} conta{cardLinkedBills.length !== 1 ? 's' : ''} incluída{cardLinkedBills.length !== 1 ? 's' : ''} nas faturas dos cartões
+                    </p>
+                  </div>
+                  <div className="divide-y divide-white/5">
+                    {cardLinkedBills.map((bill) => {
+                      const cat = CATEGORY_MAP[bill.category]
+                      const linkedCard = state.cards.find((c) => c.id === bill.cardId)
+                      const user = state.users.find((u) => u.id === bill.userId)
+                      return (
+                        <div key={bill.id} className="flex items-center gap-4 px-5 py-3 opacity-50">
+                          <div className="w-5 h-5 shrink-0" />
+                          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-base"
+                            style={{ backgroundColor: `${cat?.color}22` }}>
+                            {cat?.icon}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-slate-400">{bill.name}</p>
+                            <p className="text-xs text-slate-600">via fatura {linkedCard?.name ?? 'cartão'}</p>
+                          </div>
+                          {user && (
+                            <span className="text-xs px-2 py-0.5 rounded-full font-medium shrink-0"
+                              style={{ backgroundColor: `${user.color}22`, color: user.color }}>{user.name}</span>
+                          )}
+                          <p className="text-sm text-slate-500 shrink-0">{formatCurrency(bill.amount)}</p>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
               )}
             </div>
@@ -430,31 +501,64 @@ export function Payments() {
               ))}
             </div>
 
+            {/* Invoice period label */}
+            {(() => {
+              const isCurrentMonth = monthKey === currentMonthKey
+              const isPastMonth = monthKey < currentMonthKey
+              return (
+                <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium ${
+                  isCurrentMonth ? 'bg-brand-500/10 text-brand-400 border border-brand-500/20' :
+                  isPastMonth ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                  'bg-white/5 text-slate-400 border border-white/10'
+                }`}>
+                  {isCurrentMonth ? (
+                    <><span className="w-2 h-2 rounded-full bg-brand-400 animate-pulse" /> Fatura em aberto — acumulando gastos deste mês</>
+                  ) : isPastMonth ? (
+                    <><span className="w-2 h-2 rounded-full bg-amber-400" /> Fatura fechada — {format(monthDate, "MMMM 'de' yyyy", { locale: ptBR })}</>
+                  ) : (
+                    <><span className="w-2 h-2 rounded-full bg-slate-400" /> Fatura futura — próximo ciclo</>
+                  )}
+                </div>
+              )
+            })()}
+
             <div className="bg-surface-900 border border-white/10 rounded-2xl overflow-hidden">
               {creditCards.length === 0 ? (
                 <p className="text-center text-slate-500 py-12">Nenhum cartão de crédito cadastrado</p>
               ) : (
                 <div className="divide-y divide-white/5">
                   {creditCards.map((card) => {
-                    const invoiceAmount = getCardUsageForMonth(card.id, monthKey)
+                    const computedAmount = getCardUsageForMonth(card.id, monthKey)
                     const payment = getInvoicePayment(card.id, monthKey)
                     const isPaid = payment?.isPaid ?? false
+                    const displayAmount = isPaid && payment?.amount ? payment.amount : computedAmount
                     const user = state.users.find((u) => u.id === card.userId)
+                    const isPast = monthKey < currentMonthKey
+                    const linkedAccount = card.bankAccountId ? state.bankAccounts.find((a) => a.id === card.bankAccountId) : undefined
                     return (
-                      <div key={card.id} className={`flex items-center gap-4 px-5 py-4 transition-colors ${isPaid ? 'opacity-60' : invoiceAmount > 0 ? 'hover:bg-white/5' : 'opacity-40'}`}>
-                        <button onClick={() => invoiceAmount > 0 && handleInvoiceToggle(card.id)}
-                          className={`shrink-0 ${invoiceAmount === 0 ? 'cursor-not-allowed' : ''}`}>
+                      <div key={card.id} className={`flex items-center gap-4 px-5 py-4 transition-colors ${isPaid ? 'opacity-60' : displayAmount > 0 ? 'hover:bg-white/5' : 'opacity-40'}`}>
+                        <button onClick={() => displayAmount > 0 && handleInvoiceToggle(card.id)}
+                          className={`shrink-0 ${displayAmount === 0 ? 'cursor-not-allowed' : ''}`}>
                           {isPaid
                             ? <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                            : <Circle className={`w-5 h-5 ${invoiceAmount > 0 ? 'text-slate-500 hover:text-slate-300' : 'text-slate-700'} transition-colors`} />}
+                            : <Circle className={`w-5 h-5 ${displayAmount > 0 ? 'text-slate-500 hover:text-slate-300' : 'text-slate-700'} transition-colors`} />}
                         </button>
                         <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${card.color} flex items-center justify-center shrink-0`}>
                           <CreditCard className="w-4 h-4 text-white/80" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-medium ${isPaid ? 'line-through text-slate-500' : 'text-white'}`}>{card.name}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className={`text-sm font-medium ${isPaid ? 'line-through text-slate-500' : 'text-white'}`}>{card.name}</p>
+                            {isPast && !isPaid && (
+                              <span className="text-xs px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-400">fechada</span>
+                            )}
+                            {!isPast && (
+                              <span className="text-xs px-1.5 py-0.5 rounded-md bg-brand-500/10 text-brand-400">aberta</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                             <p className="text-xs text-slate-500">{card.bank}{card.dueDay ? ` · vence dia ${card.dueDay}` : ''}</p>
+                            {linkedAccount && <p className="text-xs text-slate-500">débito: {linkedAccount.name}</p>}
                             {payment?.paidDate && (
                               <p className="text-xs text-emerald-400">Pago em {new Date(payment.paidDate).toLocaleDateString('pt-BR')}</p>
                             )}
@@ -465,10 +569,10 @@ export function Payments() {
                             style={{ backgroundColor: `${user.color}22`, color: user.color }}>{user.name}</span>
                         )}
                         <div className="text-right shrink-0">
-                          <p className={`text-sm font-semibold ${isPaid ? 'text-emerald-400' : invoiceAmount > 0 ? 'text-white' : 'text-slate-600'}`}>
-                            {formatCurrency(invoiceAmount)}
+                          <p className={`text-sm font-semibold ${isPaid ? 'text-emerald-400' : displayAmount > 0 ? 'text-white' : 'text-slate-600'}`}>
+                            {formatCurrency(displayAmount)}
                           </p>
-                          {invoiceAmount === 0 && <p className="text-xs text-slate-600">sem gastos</p>}
+                          {displayAmount === 0 && <p className="text-xs text-slate-600">sem gastos</p>}
                         </div>
                       </div>
                     )
@@ -568,6 +672,7 @@ export function Payments() {
           userId={confirmTarget.userId}
           currentDate={confirmTarget.currentDate}
           prefillBankAccountId={confirmTarget.prefillBankAccountId}
+          editableAmount={confirmTarget.editableAmount}
           onConfirm={handleConfirm}
           onCancel={() => setConfirmTarget(null)}
         />

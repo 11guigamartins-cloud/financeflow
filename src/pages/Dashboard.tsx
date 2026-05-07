@@ -25,8 +25,8 @@ const TOOLTIP_STYLE = {
 
 export function Dashboard() {
   const {
-    state, getTransactionsForMonth, getTotalForMonth, getCardUsageForMonth,
-    getTotalBankBalance, getTotalIncomeForMonth,
+    state, getTransactionsForMonth, getTotalForMonth, getTotalSpendingForMonth,
+    getCardUsageForMonth, getTotalBankBalance, getTotalIncomeForMonth,
   } = useFinance()
   const [addOpen, setAddOpen] = useState(false)
 
@@ -35,8 +35,8 @@ export function Dashboard() {
   const currentMonth = format(now, 'yyyy-MM')
   const lastMonth = format(addMonths(now, -1), 'yyyy-MM')
 
-  const currentTotal   = getTotalForMonth(currentMonth, userId)
-  const lastTotal      = getTotalForMonth(lastMonth, userId)
+  const currentTotal   = getTotalSpendingForMonth(currentMonth, userId)
+  const lastTotal      = getTotalSpendingForMonth(lastMonth, userId)
   const trendPct       = lastTotal > 0 ? ((currentTotal - lastTotal) / lastTotal) * 100 : 0
   const totalBalance   = getTotalBankBalance(userId)
   const currentIncome  = getTotalIncomeForMonth(currentMonth, userId)
@@ -46,18 +46,20 @@ export function Dashboard() {
   const last6 = getLast12Months().slice(-6)
   const areaData = last6.map((m) => ({
     name: monthLabel(m),
-    Gastos:   Math.round(getTotalForMonth(m, userId)),
+    Gastos:   Math.round(getTotalSpendingForMonth(m, userId)),
     Entradas: Math.round(getTotalIncomeForMonth(m, userId)),
     ...Object.fromEntries(
-      state.users.map((u) => [u.name, Math.round(getTotalForMonth(m, u.id))])
+      state.users.map((u) => [u.name, Math.round(getTotalSpendingForMonth(m, u.id))])
     ),
   }))
 
-  // Category breakdown for current month
+  // Category breakdown: transactions + active bills
   const currentTxns = getTransactionsForMonth(currentMonth, userId)
+  const currentBills = state.bills.filter((b) => b.isActive && (userId ? b.userId === userId : true))
   const byCategory = CATEGORIES.map((cat) => {
-    const total = currentTxns.filter((t) => t.category === cat.id).reduce((s, t) => s + t.amount, 0)
-    return { name: cat.label, value: Math.round(total), color: cat.color, icon: cat.icon }
+    const txnTotal  = currentTxns.filter((t) => t.category === cat.id).reduce((s, t) => s + t.amount, 0)
+    const billTotal = currentBills.filter((b) => b.category === cat.id).reduce((s, b) => s + b.amount, 0)
+    return { name: cat.label, value: Math.round(txnTotal + billTotal), color: cat.color, icon: cat.icon }
   }).filter((c) => c.value > 0).sort((a, b) => b.value - a.value)
 
   // Payment method breakdown
@@ -92,7 +94,7 @@ export function Dashboard() {
 
   // Projection
   const last3 = getLast12Months().slice(-3)
-  const avgLast3 = last3.reduce((s, m) => s + getTotalForMonth(m, userId), 0) / 3
+  const avgLast3 = last3.reduce((s, m) => s + getTotalSpendingForMonth(m, userId), 0) / 3
 
   const daysPassed = now.getDate()
   const avgDaily = daysPassed > 0 ? currentTotal / daysPassed : 0
@@ -328,16 +330,17 @@ export function Dashboard() {
             <h3 className="font-semibold text-white mb-4">Comparativo do Casal</h3>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
               {state.users.map((u) => {
-                const uTotal  = getTotalForMonth(currentMonth, u.id)
+                const uTotal  = getTotalSpendingForMonth(currentMonth, u.id)
                 const uIncome = getTotalIncomeForMonth(currentMonth, u.id)
                 const uNet    = uIncome - uTotal
                 const uPct    = currentTotal > 0 ? (uTotal / currentTotal) * 100 : 0
                 const uBal    = getTotalBankBalance(u.id)
+                const uTxns   = getTransactionsForMonth(currentMonth, u.id)
+                const uBills  = state.bills.filter((b) => b.isActive && b.userId === u.id)
                 const uCategories = CATEGORIES.map((cat) => ({
                   cat,
-                  val: getTransactionsForMonth(currentMonth, u.id)
-                    .filter((t) => t.category === cat.id)
-                    .reduce((s, t) => s + t.amount, 0),
+                  val: uTxns.filter((t) => t.category === cat.id).reduce((s, t) => s + t.amount, 0)
+                    + uBills.filter((b) => b.category === cat.id).reduce((s, b) => s + b.amount, 0),
                 })).filter((x) => x.val > 0).sort((a, b) => b.val - a.val).slice(0, 3)
 
                 return (

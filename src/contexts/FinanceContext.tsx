@@ -177,6 +177,7 @@ interface FinanceContextValue {
   getTransactionsForMonth: (monthKey: string, userId?: string) => Transaction[]
   getInstallmentTransactions: () => Transaction[]
   getTotalForMonth: (monthKey: string, userId?: string) => number
+  getTotalSpendingForMonth: (monthKey: string, userId?: string) => number
   getCardUsageForMonth: (cardId: string, monthKey: string) => number
   getIncomesForMonth: (monthKey: string, userId?: string) => Income[]
   getTotalIncomeForMonth: (monthKey: string, userId?: string) => number
@@ -387,6 +388,28 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const getTotalForMonth = (monthKey: string, userId?: string) =>
     getTransactionsForMonth(monthKey, userId).reduce((sum, t) => sum + t.amount, 0)
 
+  // Comprehensive monthly spending: non-credit transactions + card invoices + direct bills
+  // Avoids double-counting: credit card purchases appear only in invoiceTotal (via getCardUsageForMonth)
+  const getTotalSpendingForMonth = (monthKey: string, userId?: string): number => {
+    const [y, m] = monthKey.split('-').map(Number)
+    const directTxTotal = state.transactions
+      .filter((t) => {
+        if (userId && t.userId !== userId) return false
+        const d = new Date(t.date)
+        if (d.getFullYear() !== y || d.getMonth() + 1 !== m) return false
+        return !(t.cardId && t.paymentMethod === 'credit')
+      })
+      .reduce((s, t) => s + t.amount, 0)
+    const directBillTotal = state.bills
+      .filter((b) => b.isActive && !b.cardId && (userId ? b.userId === userId : true))
+      .reduce((s, b) => s + b.amount, 0)
+    const creditCards = state.cards.filter(
+      (c) => (c.type === 'credit' || c.type === 'both') && (userId ? c.userId === userId : true)
+    )
+    const invoiceTotal = creditCards.reduce((s, c) => s + getCardUsageForMonth(c.id, monthKey), 0)
+    return directTxTotal + directBillTotal + invoiceTotal
+  }
+
   const getCardUsageForMonth = (cardId: string, monthKey: string) => {
     const [y, m] = monthKey.split('-').map(Number)
     const txTotal = state.transactions
@@ -458,7 +481,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       getUserCards, getCardById, getUserById,
       getBankAccountById, getUserBankAccounts, getTotalBankBalance,
       getTransactionsForMonth, getInstallmentTransactions,
-      getTotalForMonth, getCardUsageForMonth,
+      getTotalForMonth, getTotalSpendingForMonth, getCardUsageForMonth,
       getIncomesForMonth, getTotalIncomeForMonth,
       getBillPayment, getInvoicePayment,
     }}>
