@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
-import { FinanceProvider } from './contexts/FinanceContext'
+import { FinanceProvider, useFinance } from './contexts/FinanceContext'
 import { Dashboard } from './pages/Dashboard'
 import { Cards } from './pages/Cards'
 import { Transactions } from './pages/Transactions'
@@ -62,7 +62,22 @@ function ProtectedShell({ children }: { children: React.ReactNode }) {
       </div>
     )
   }
-  return <FinanceProvider>{children}</FinanceProvider>
+  return <FinanceProvider><DataReady>{children}</DataReady></FinanceProvider>
+}
+
+function DataReady({ children }: { children: React.ReactNode }) {
+  const { ready } = useFinance()
+  if (!ready) {
+    return (
+      <div className="min-h-screen bg-surface-950 flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 border-2 border-brand-500 border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-slate-400 text-sm">Carregando seus dados...</p>
+        </div>
+      </div>
+    )
+  }
+  return <>{children}</>
 }
 
 function PublicOnly({ children }: { children: React.ReactNode }) {
