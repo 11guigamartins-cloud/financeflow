@@ -25,19 +25,22 @@ export function Layout({ title, subtitle, children }: Props) {
       )}
 
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-20 bg-surface-950/80 backdrop-blur-md border-b border-white/10 px-4 lg:px-8 py-4">
+        <header
+          className="sticky top-0 z-20 bg-surface-950/90 backdrop-blur-md border-b border-white/10 px-4 lg:px-8"
+          style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)', paddingBottom: '1rem' }}
+        >
           <div className="flex items-center gap-3">
             <button onClick={() => setOpen((o) => !o)}
-              className="lg:hidden p-2 -ml-2 rounded-lg text-slate-400 hover:bg-white/5">
+              className="lg:hidden p-3 -ml-2 rounded-xl text-white bg-white/5 hover:bg-white/10 active:bg-white/15 transition-colors">
               {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <h1 className="text-lg lg:text-xl font-bold text-white truncate">{title}</h1>
               {subtitle && <p className="text-xs lg:text-sm text-slate-400 mt-0.5 truncate">{subtitle}</p>}
             </div>
           </div>
         </header>
-        <main className="p-4 lg:p-8">{children}</main>
+        <main className="p-4 lg:p-8" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1rem)' }}>{children}</main>
       </div>
     </div>
   )

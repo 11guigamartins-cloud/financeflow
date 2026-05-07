@@ -16,7 +16,7 @@ export async function scanReceipt(imageBase64: string, mimeType: string): Promis
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY
   if (!apiKey) return { ok: false, limitReached: false, error: 'Chave Gemini não configurada.' }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
 
   const body = {
     contents: [{
