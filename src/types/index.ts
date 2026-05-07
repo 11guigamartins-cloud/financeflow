@@ -9,7 +9,7 @@ export interface User {
 
 // ─── Cards ────────────────────────────────────────────────────────────────────
 
-export type CardType = 'credit' | 'debit'
+export type CardType = 'credit' | 'debit' | 'both'
 export type CardNetwork = 'visa' | 'mastercard' | 'elo' | 'amex' | 'hipercard' | 'other'
 
 export interface Card {
@@ -24,6 +24,7 @@ export interface Card {
   closingDay?: number
   dueDay?: number
   color: string
+  bankAccountId?: string
 }
 
 // ─── Bank Accounts ────────────────────────────────────────────────────────────

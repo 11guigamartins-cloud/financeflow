@@ -343,6 +343,7 @@ export function Income() {
       </div>
 
       <IncomeModal
+        key={editIncome?.id ?? 'new-income'}
         isOpen={modalOpen}
         onClose={() => { setModalOpen(false); setEditIncome(undefined) }}
         income={editIncome}

@@ -22,6 +22,7 @@ const EMPTY: Omit<Card, 'id'> = {
   closingDay: undefined,
   dueDay: undefined,
   color: CARD_COLORS[0],
+  bankAccountId: undefined,
 }
 
 export function CardModal({ isOpen, onClose, card }: Props) {
@@ -68,6 +69,7 @@ export function CardModal({ isOpen, onClose, card }: Props) {
           <Select label="Tipo" value={form.type} onChange={(e) => set('type', e.target.value as Card['type'])}>
             <option value="credit">Crédito</option>
             <option value="debit">Débito</option>
+            <option value="both">Crédito + Débito</option>
           </Select>
           <Select label="Bandeira" value={form.network} onChange={(e) => set('network', e.target.value as Card['network'])}>
             <option value="visa">Visa</option>
@@ -78,6 +80,14 @@ export function CardModal({ isOpen, onClose, card }: Props) {
             <option value="other">Outra</option>
           </Select>
         </div>
+
+        <Select label="Conta bancária vinculada (opcional)" value={form.bankAccountId ?? ''}
+          onChange={(e) => set('bankAccountId', e.target.value || undefined)}>
+          <option value="">Nenhuma</option>
+          {state.bankAccounts.filter((a) => a.userId === form.userId).map((a) => (
+            <option key={a.id} value={a.id}>{a.bank} — {a.name}</option>
+          ))}
+        </Select>
 
         <div className="grid grid-cols-3 gap-4">
           <Input label="Limite (R$)" type="number" value={form.limit ?? ''} min={0}

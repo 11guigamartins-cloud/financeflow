@@ -262,7 +262,7 @@ export function Bills() {
         </div>
       </div>
 
-      <BillModal isOpen={modalOpen} onClose={() => { setModalOpen(false); setEditBill(undefined) }} bill={editBill} />
+      <BillModal key={editBill?.id ?? 'new-bill'} isOpen={modalOpen} onClose={() => { setModalOpen(false); setEditBill(undefined) }} bill={editBill} />
     </Layout>
   )
 }

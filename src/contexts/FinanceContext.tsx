@@ -389,12 +389,17 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
 
   const getCardUsageForMonth = (cardId: string, monthKey: string) => {
     const [y, m] = monthKey.split('-').map(Number)
-    return state.transactions
+    const txTotal = state.transactions
       .filter((t) => {
         const d = new Date(t.date)
         return t.cardId === cardId && d.getFullYear() === y && d.getMonth() + 1 === m
       })
       .reduce((sum, t) => sum + t.amount, 0)
+    // Active bills charged to this card also appear in the monthly invoice
+    const billTotal = state.bills
+      .filter((b) => b.isActive && b.cardId === cardId)
+      .reduce((sum, b) => sum + b.amount, 0)
+    return txTotal + billTotal
   }
 
   const getIncomesForMonth = (monthKey: string, userId?: string) => {

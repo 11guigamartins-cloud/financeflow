@@ -232,6 +232,7 @@ export function Transactions() {
       </div>
 
       <TransactionModal
+        key={editTx?.id ?? 'new'}
         isOpen={modalOpen}
         onClose={() => { setModalOpen(false); setEditTx(undefined) }}
         transaction={editTx}

@@ -83,7 +83,7 @@ export function Cards() {
       dispatch({ type: 'DELETE_BANK_ACCOUNT', accountId: acc.id })
   }
 
-  const totalLimit = visibleCards.filter((c) => c.type === 'credit').reduce((s, c) => s + (c.limit ?? 0), 0)
+  const totalLimit = visibleCards.filter((c) => c.type === 'credit' || c.type === 'both').reduce((s, c) => s + (c.limit ?? 0), 0)
   const totalUsed  = visibleCards.reduce((s, c) => s + getCardUsageForMonth(c.id, currentMonth), 0)
   const totalBal   = getTotalBankBalance(userId)
 
@@ -110,8 +110,8 @@ export function Cards() {
             <p className="text-xs text-slate-400 mb-1">Cartões ativos</p>
             <p className="text-2xl font-bold text-white">{visibleCards.length}</p>
             <p className="text-xs text-slate-500 mt-1">
-              {visibleCards.filter((c) => c.type === 'credit').length} crédito ·{' '}
-              {visibleCards.filter((c) => c.type === 'debit').length} débito
+              {visibleCards.filter((c) => c.type === 'credit' || c.type === 'both').length} crédito ·{' '}
+              {visibleCards.filter((c) => c.type === 'debit' || c.type === 'both').length} débito
             </p>
           </div>
           <div className="bg-surface-900 border border-white/10 rounded-2xl p-5">
@@ -329,8 +329,8 @@ export function Cards() {
 
       </div>
 
-      <CardModal isOpen={cardModalOpen} onClose={() => { setCardModalOpen(false); setEditCard(undefined) }} card={editCard} />
-      <BankAccountModal isOpen={accModalOpen} onClose={() => { setAccModalOpen(false); setEditAcc(undefined) }} account={editAcc} />
+      <CardModal key={editCard?.id ?? 'new-card'} isOpen={cardModalOpen} onClose={() => { setCardModalOpen(false); setEditCard(undefined) }} card={editCard} />
+      <BankAccountModal key={editAcc?.id ?? 'new-acc'} isOpen={accModalOpen} onClose={() => { setAccModalOpen(false); setEditAcc(undefined) }} account={editAcc} />
       {updateBalAcc && <UpdateBalanceModal account={updateBalAcc} onClose={() => setUpdateBalAcc(undefined)} />}
     </Layout>
   )

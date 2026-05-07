@@ -20,12 +20,14 @@ export const fromCard = (r: any): Card => ({
   limit: r.card_limit ?? undefined,
   closingDay: r.closing_day ?? undefined,
   dueDay: r.due_day ?? undefined, color: r.color,
+  bankAccountId: r.bank_account_id ?? undefined,
 })
 export const toCard = (c: Omit<Card, 'id'>) => ({
   user_id: c.userId, name: c.name, bank: c.bank,
   last_four_digits: c.lastFourDigits, type: c.type, network: c.network,
   card_limit: c.limit ?? null, closing_day: c.closingDay ?? null,
   due_day: c.dueDay ?? null, color: c.color,
+  bank_account_id: c.bankAccountId ?? null,
 })
 
 // ─── BankAccount ───────────────────────────────────────────────────────────

@@ -148,14 +148,15 @@ interface ConfirmPayModalProps {
   amount: number
   userId: string
   currentDate?: string
+  prefillBankAccountId?: string
   onConfirm: (date: string, bankAccountId: string) => void
   onCancel: () => void
 }
 
-function ConfirmPayModal({ title, amount, userId, currentDate, onConfirm, onCancel }: ConfirmPayModalProps) {
+function ConfirmPayModal({ title, amount, userId, currentDate, prefillBankAccountId, onConfirm, onCancel }: ConfirmPayModalProps) {
   const { state } = useFinance()
   const [date, setDate] = useState(currentDate ?? format(new Date(), 'yyyy-MM-dd'))
-  const [bankAccountId, setBankAccountId] = useState('')
+  const [bankAccountId, setBankAccountId] = useState(prefillBankAccountId ?? '')
   const userAccounts = state.bankAccounts.filter((a) => a.userId === userId)
 
   return (
@@ -208,6 +209,7 @@ export function Payments() {
     amount: number
     userId: string
     currentDate?: string
+    prefillBankAccountId?: string
   } | null>(null)
 
   const [boletoModal, setBoletoModal] = useState(false)
@@ -227,7 +229,7 @@ export function Payments() {
 
   // ── Invoice tab ────────────────────────────────────────────────────────────
   const creditCards = useMemo(() =>
-    state.cards.filter((c) => c.type === 'credit' && (!state.activeUserId || c.userId === state.activeUserId)),
+    state.cards.filter((c) => (c.type === 'credit' || c.type === 'both') && (!state.activeUserId || c.userId === state.activeUserId)),
     [state.cards, state.activeUserId]
   )
 
@@ -272,7 +274,7 @@ export function Payments() {
     if (payment?.isPaid) {
       dispatch({ type: 'UPSERT_INVOICE_PAYMENT', payment: { id: payment.id, cardId, monthKey, amount, isPaid: false, paidDate: undefined, bankAccountId: undefined } })
     } else {
-      setConfirmTarget({ type: 'invoice', id: cardId, title: `Fatura ${card.name}`, amount: payment?.amount ?? amount, userId: card.userId })
+      setConfirmTarget({ type: 'invoice', id: cardId, title: `Fatura ${card.name}`, amount: payment?.amount ?? amount, userId: card.userId, prefillBankAccountId: card.bankAccountId })
     }
   }
 
@@ -370,6 +372,7 @@ export function Payments() {
                     const isPaid = payment?.isPaid ?? false
                     const cat = CATEGORY_MAP[bill.category]
                     const user = state.users.find((u) => u.id === bill.userId)
+                    const linkedCard = bill.cardId ? state.cards.find((c) => c.id === bill.cardId) : undefined
                     return (
                       <div key={bill.id} className={`flex items-center gap-4 px-5 py-4 transition-colors ${isPaid ? 'opacity-60' : 'hover:bg-white/5'}`}>
                         <button onClick={() => handleBillToggle(bill.id)} className="shrink-0">
@@ -383,8 +386,13 @@ export function Payments() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className={`text-sm font-medium ${isPaid ? 'line-through text-slate-500' : 'text-white'}`}>{bill.name}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
+                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                             <p className="text-xs text-slate-500">Vence dia {bill.dueDay}</p>
+                            {linkedCard && (
+                              <span className="text-xs text-brand-400 bg-brand-500/10 px-1.5 py-0.5 rounded-md">
+                                via fatura {linkedCard.name}
+                              </span>
+                            )}
                             {payment?.paidDate && (
                               <p className="text-xs text-emerald-400">Pago em {new Date(payment.paidDate).toLocaleDateString('pt-BR')}</p>
                             )}
@@ -559,12 +567,14 @@ export function Payments() {
           amount={confirmTarget.amount}
           userId={confirmTarget.userId}
           currentDate={confirmTarget.currentDate}
+          prefillBankAccountId={confirmTarget.prefillBankAccountId}
           onConfirm={handleConfirm}
           onCancel={() => setConfirmTarget(null)}
         />
       )}
 
       <BoletoModal
+        key={editBoleto?.id ?? 'new-boleto'}
         isOpen={boletoModal}
         onClose={() => { setBoletoModal(false); setEditBoleto(undefined) }}
         boleto={editBoleto}

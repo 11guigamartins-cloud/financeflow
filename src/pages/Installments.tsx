@@ -268,6 +268,7 @@ export function Installments() {
       </div>
 
       <TransactionModal
+        key={editTx?.id ?? 'new'}
         isOpen={addOpen}
         onClose={() => { setAddOpen(false); setEditTx(undefined) }}
         transaction={editTx}
