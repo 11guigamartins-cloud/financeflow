@@ -12,7 +12,7 @@ import { Payments } from './pages/Payments'
 import { Login } from './pages/Login'
 
 function ProtectedShell({ children }: { children: React.ReactNode }) {
-  const { session, loading } = useAuth()
+  const { session, profile, loading, signOut } = useAuth()
   if (loading) {
     return (
       <div className="min-h-screen bg-surface-950 flex items-center justify-center">
@@ -21,6 +21,21 @@ function ProtectedShell({ children }: { children: React.ReactNode }) {
     )
   }
   if (!session) return <Navigate to="/login" replace />
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-surface-950 flex items-center justify-center p-6">
+        <div className="text-center space-y-4 max-w-sm">
+          <p className="text-white font-semibold text-lg">Perfil não encontrado</p>
+          <p className="text-slate-400 text-sm">Sua sessão está em um estado inconsistente. Faça logout e entre novamente.</p>
+          <button
+            onClick={() => signOut()}
+            className="px-6 py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-medium transition-colors">
+            Sair e limpar sessão
+          </button>
+        </div>
+      </div>
+    )
+  }
   return <FinanceProvider>{children}</FinanceProvider>
 }
 

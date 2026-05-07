@@ -162,7 +162,7 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
             </div>
             <button onClick={() => signOut()}
               title="Sair"
-              className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors opacity-0 group-hover:opacity-100">
+              className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors">
               <LogOut className="w-4 h-4" />
             </button>
           </div>

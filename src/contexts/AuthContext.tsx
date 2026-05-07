@@ -94,8 +94,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signOut() {
-    await supabase.auth.signOut()
+    try { await supabase.auth.signOut() } catch (e) { console.error('signOut failed:', e) }
     setProfile(null)
+    setSession(null)
+    // Limpa qualquer storage residual do supabase
+    try {
+      Object.keys(localStorage).forEach((k) => {
+        if (k.startsWith('sb-') || k.includes('supabase')) localStorage.removeItem(k)
+      })
+    } catch {}
+    window.location.href = '/login'
   }
 
   async function reloadProfile() {
