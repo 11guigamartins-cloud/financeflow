@@ -210,136 +210,152 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
 
   // ─── dispatch async wrapper ────────────────────────────────────────────────
   function dispatch(a: PublicAction) {
-    if (!householdId) return
+    if (!householdId) {
+      console.error('[FinanceContext] Sem household_id. Profile:', profile)
+      alert('Perfil não carregado. Faça logout e login novamente.')
+      return
+    }
     void runAction(a)
+  }
+
+  function check<T>(result: { data: T | null; error: any }, label: string): T | null {
+    if (result.error) {
+      console.error(`[FinanceContext] ${label} falhou:`, result.error)
+      throw new Error(result.error.message || `${label} falhou`)
+    }
+    return result.data
   }
 
   async function runAction(a: PublicAction) {
     if (!householdId) return
     const hh = householdId
-    switch (a.type) {
+    try {
+      switch (a.type) {
 
-      case 'SET_ACTIVE_USER':
-        dispatchInternal(a); return
+        case 'SET_ACTIVE_USER':
+          dispatchInternal(a); return
 
-      case 'ADD_CARD': {
-        const { data } = await supabase.from('cards').insert({ ...toCard(a.card), household_id: hh }).select().single()
-        if (data) dispatchInternal({ type: 'ADD_CARD', card: fromCard(data) })
-        return
-      }
-      case 'UPDATE_CARD': {
-        const { id, ...rest } = a.card
-        await supabase.from('cards').update(toCard(rest)).eq('id', id)
-        dispatchInternal(a); return
-      }
-      case 'DELETE_CARD':
-        await supabase.from('cards').delete().eq('id', a.cardId)
-        dispatchInternal(a); return
+        case 'ADD_CARD': {
+          const data = check(await supabase.from('cards').insert({ ...toCard(a.card), household_id: hh }).select().single(), 'ADD_CARD')
+          if (data) dispatchInternal({ type: 'ADD_CARD', card: fromCard(data) })
+          return
+        }
+        case 'UPDATE_CARD': {
+          const { id, ...rest } = a.card
+          check(await supabase.from('cards').update(toCard(rest)).eq('id', id), 'UPDATE_CARD')
+          dispatchInternal(a); return
+        }
+        case 'DELETE_CARD':
+          check(await supabase.from('cards').delete().eq('id', a.cardId), 'DELETE_CARD')
+          dispatchInternal(a); return
 
-      case 'ADD_BANK_ACCOUNT': {
-        const { data } = await supabase.from('bank_accounts').insert({ ...toBankAccount(a.account), household_id: hh }).select().single()
-        if (data) dispatchInternal({ type: 'ADD_BANK_ACCOUNT', account: fromBankAccount(data) })
-        return
-      }
-      case 'UPDATE_BANK_ACCOUNT': {
-        const { id, ...rest } = a.account
-        await supabase.from('bank_accounts').update(toBankAccount(rest)).eq('id', id)
-        dispatchInternal(a); return
-      }
-      case 'DELETE_BANK_ACCOUNT':
-        await supabase.from('bank_accounts').delete().eq('id', a.accountId)
-        dispatchInternal(a); return
-      case 'SET_BANK_BALANCE':
-        await supabase.from('bank_accounts').update({ balance: a.balance }).eq('id', a.accountId)
-        dispatchInternal(a); return
+        case 'ADD_BANK_ACCOUNT': {
+          const data = check(await supabase.from('bank_accounts').insert({ ...toBankAccount(a.account), household_id: hh }).select().single(), 'ADD_BANK_ACCOUNT')
+          if (data) dispatchInternal({ type: 'ADD_BANK_ACCOUNT', account: fromBankAccount(data) })
+          return
+        }
+        case 'UPDATE_BANK_ACCOUNT': {
+          const { id, ...rest } = a.account
+          check(await supabase.from('bank_accounts').update(toBankAccount(rest)).eq('id', id), 'UPDATE_BANK_ACCOUNT')
+          dispatchInternal(a); return
+        }
+        case 'DELETE_BANK_ACCOUNT':
+          check(await supabase.from('bank_accounts').delete().eq('id', a.accountId), 'DELETE_BANK_ACCOUNT')
+          dispatchInternal(a); return
+        case 'SET_BANK_BALANCE':
+          check(await supabase.from('bank_accounts').update({ balance: a.balance }).eq('id', a.accountId), 'SET_BANK_BALANCE')
+          dispatchInternal(a); return
 
-      case 'ADD_TRANSACTION': {
-        const { data } = await supabase.from('transactions').insert({ ...toTransaction(a.transaction), household_id: hh }).select().single()
-        if (data) dispatchInternal({ type: 'ADD_TRANSACTION', transaction: fromTransaction(data) })
-        return
-      }
-      case 'UPDATE_TRANSACTION': {
-        const { id, ...rest } = a.transaction
-        await supabase.from('transactions').update(toTransaction(rest)).eq('id', id)
-        dispatchInternal(a); return
-      }
-      case 'DELETE_TRANSACTION':
-        await supabase.from('transactions').delete().eq('id', a.transactionId)
-        dispatchInternal(a); return
+        case 'ADD_TRANSACTION': {
+          const data = check(await supabase.from('transactions').insert({ ...toTransaction(a.transaction), household_id: hh }).select().single(), 'ADD_TRANSACTION')
+          if (data) dispatchInternal({ type: 'ADD_TRANSACTION', transaction: fromTransaction(data) })
+          return
+        }
+        case 'UPDATE_TRANSACTION': {
+          const { id, ...rest } = a.transaction
+          check(await supabase.from('transactions').update(toTransaction(rest)).eq('id', id), 'UPDATE_TRANSACTION')
+          dispatchInternal(a); return
+        }
+        case 'DELETE_TRANSACTION':
+          check(await supabase.from('transactions').delete().eq('id', a.transactionId), 'DELETE_TRANSACTION')
+          dispatchInternal(a); return
 
-      case 'ADD_INCOME': {
-        const { data } = await supabase.from('incomes').insert({ ...toIncome(a.income), household_id: hh }).select().single()
-        if (data) dispatchInternal({ type: 'ADD_INCOME', income: fromIncome(data) })
-        return
-      }
-      case 'UPDATE_INCOME': {
-        const { id, ...rest } = a.income
-        await supabase.from('incomes').update(toIncome(rest)).eq('id', id)
-        dispatchInternal(a); return
-      }
-      case 'DELETE_INCOME':
-        await supabase.from('incomes').delete().eq('id', a.incomeId)
-        dispatchInternal(a); return
+        case 'ADD_INCOME': {
+          const data = check(await supabase.from('incomes').insert({ ...toIncome(a.income), household_id: hh }).select().single(), 'ADD_INCOME')
+          if (data) dispatchInternal({ type: 'ADD_INCOME', income: fromIncome(data) })
+          return
+        }
+        case 'UPDATE_INCOME': {
+          const { id, ...rest } = a.income
+          check(await supabase.from('incomes').update(toIncome(rest)).eq('id', id), 'UPDATE_INCOME')
+          dispatchInternal(a); return
+        }
+        case 'DELETE_INCOME':
+          check(await supabase.from('incomes').delete().eq('id', a.incomeId), 'DELETE_INCOME')
+          dispatchInternal(a); return
 
-      case 'ADD_BILL': {
-        const { data } = await supabase.from('bills').insert({ ...toBill(a.bill), household_id: hh }).select().single()
-        if (data) dispatchInternal({ type: 'ADD_BILL', bill: fromBill(data) })
-        return
-      }
-      case 'UPDATE_BILL': {
-        const { id, ...rest } = a.bill
-        await supabase.from('bills').update(toBill(rest)).eq('id', id)
-        dispatchInternal(a); return
-      }
-      case 'DELETE_BILL':
-        await supabase.from('bills').delete().eq('id', a.billId)
-        dispatchInternal(a); return
+        case 'ADD_BILL': {
+          const data = check(await supabase.from('bills').insert({ ...toBill(a.bill), household_id: hh }).select().single(), 'ADD_BILL')
+          if (data) dispatchInternal({ type: 'ADD_BILL', bill: fromBill(data) })
+          return
+        }
+        case 'UPDATE_BILL': {
+          const { id, ...rest } = a.bill
+          check(await supabase.from('bills').update(toBill(rest)).eq('id', id), 'UPDATE_BILL')
+          dispatchInternal(a); return
+        }
+        case 'DELETE_BILL':
+          check(await supabase.from('bills').delete().eq('id', a.billId), 'DELETE_BILL')
+          dispatchInternal(a); return
 
-      case 'UPSERT_BILL_PAYMENT': {
-        const { id, ...rest } = a.payment
-        const payload = { ...toBillPayment(rest), household_id: hh }
-        const { data } = await supabase
-          .from('bill_payments')
-          .upsert({ ...payload, ...(id ? { id } : {}) }, { onConflict: 'bill_id,month_key' })
-          .select().single()
-        if (data) dispatchInternal({ type: 'UPSERT_BILL_PAYMENT', payment: fromBillPayment(data) })
-        return
-      }
-      case 'UPSERT_INVOICE_PAYMENT': {
-        const { id, ...rest } = a.payment
-        const payload = { ...toInvoicePayment(rest), household_id: hh }
-        const { data } = await supabase
-          .from('invoice_payments')
-          .upsert({ ...payload, ...(id ? { id } : {}) }, { onConflict: 'card_id,month_key' })
-          .select().single()
-        if (data) dispatchInternal({ type: 'UPSERT_INVOICE_PAYMENT', payment: fromInvoicePayment(data) })
-        return
-      }
+        case 'UPSERT_BILL_PAYMENT': {
+          const { id, ...rest } = a.payment
+          const payload = { ...toBillPayment(rest), household_id: hh }
+          const data = check(await supabase
+            .from('bill_payments')
+            .upsert({ ...payload, ...(id ? { id } : {}) }, { onConflict: 'bill_id,month_key' })
+            .select().single(), 'UPSERT_BILL_PAYMENT')
+          if (data) dispatchInternal({ type: 'UPSERT_BILL_PAYMENT', payment: fromBillPayment(data) })
+          return
+        }
+        case 'UPSERT_INVOICE_PAYMENT': {
+          const { id, ...rest } = a.payment
+          const payload = { ...toInvoicePayment(rest), household_id: hh }
+          const data = check(await supabase
+            .from('invoice_payments')
+            .upsert({ ...payload, ...(id ? { id } : {}) }, { onConflict: 'card_id,month_key' })
+            .select().single(), 'UPSERT_INVOICE_PAYMENT')
+          if (data) dispatchInternal({ type: 'UPSERT_INVOICE_PAYMENT', payment: fromInvoicePayment(data) })
+          return
+        }
 
-      case 'ADD_BOLETO': {
-        const { data } = await supabase.from('boletos').insert({ ...toBoleto(a.boleto), household_id: hh }).select().single()
-        if (data) dispatchInternal({ type: 'ADD_BOLETO', boleto: fromBoleto(data) })
-        return
-      }
-      case 'UPDATE_BOLETO': {
-        const { id, ...rest } = a.boleto
-        await supabase.from('boletos').update(toBoleto(rest)).eq('id', id)
-        dispatchInternal(a); return
-      }
-      case 'DELETE_BOLETO':
-        await supabase.from('boletos').delete().eq('id', a.boletoId)
-        dispatchInternal(a); return
+        case 'ADD_BOLETO': {
+          const data = check(await supabase.from('boletos').insert({ ...toBoleto(a.boleto), household_id: hh }).select().single(), 'ADD_BOLETO')
+          if (data) dispatchInternal({ type: 'ADD_BOLETO', boleto: fromBoleto(data) })
+          return
+        }
+        case 'UPDATE_BOLETO': {
+          const { id, ...rest } = a.boleto
+          check(await supabase.from('boletos').update(toBoleto(rest)).eq('id', id), 'UPDATE_BOLETO')
+          dispatchInternal(a); return
+        }
+        case 'DELETE_BOLETO':
+          check(await supabase.from('boletos').delete().eq('id', a.boletoId), 'DELETE_BOLETO')
+          dispatchInternal(a); return
 
-      case 'UPDATE_USER': {
-        await supabase.from('profiles').update({
-          display_name: a.user.name, color: a.user.color, avatar: a.user.avatar,
-        }).eq('id', a.user.id)
-        dispatchInternal(a); return
-      }
+        case 'UPDATE_USER': {
+          check(await supabase.from('profiles').update({
+            display_name: a.user.name, color: a.user.color, avatar: a.user.avatar,
+          }).eq('id', a.user.id), 'UPDATE_USER')
+          dispatchInternal(a); return
+        }
 
-      case 'ADD_USER':
-        // criar novo usuário = convidar pessoa pro household. Tratado em outro fluxo.
-        return
+        case 'ADD_USER':
+          return
+      }
+    } catch (e: any) {
+      console.error(`[FinanceContext] ${a.type}:`, e)
+      alert(`Erro ao salvar: ${e?.message || 'tente novamente'}`)
     }
   }
 
